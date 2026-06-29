@@ -940,17 +940,21 @@ let holidayLoadStatus = 'idle'; // idle | loading | done | error
 
 const API_KEY = '9e644bbc9679873e697c8e70127dc6c6d1073968698887cef1fc34aba8e0a36c';
 
-// 방학 기간에 해당하는 연월 목록 반환
+// 방학 기간(방학식 다음날 ~ 개학일 전날)에 해당하는 연월만 수집
 function getVacMonths() {
   const months = new Set();
   const svs = parseDate(state.sumVacStart);
   const sve = parseDate(state.sumVacEnd);
   const wvs = parseDate(state.winVacStart);
   const wve = parseDate(state.winVacEnd);
+  // 방학 시작: 방학식 다음날, 방학 끝: 개학일 전날
   [[svs, sve], [wvs, wve]].forEach(([s, e]) => {
     if (!s || !e) return;
-    let cur = new Date(s.getFullYear(), s.getMonth(), 1);
-    const last = new Date(e.getFullYear(), e.getMonth(), 1);
+    const breakStart = addDays(s, 1);   // 방학식 다음날
+    const breakEnd   = addDays(e, -1);  // 개학일 전날
+    if (breakStart > breakEnd) return;
+    let cur = new Date(breakStart.getFullYear(), breakStart.getMonth(), 1);
+    const last = new Date(breakEnd.getFullYear(), breakEnd.getMonth(), 1);
     while (cur <= last) {
       months.add(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`);
       cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
@@ -1471,9 +1475,13 @@ function updateResult(){
 
   const schoolDays=calcSchoolDays();
 
-  // 방학중 공휴일
+  // 방학중 공휴일 (일요일 제외 — 규정: "관공서 공휴일에 관한 규정"에 따른 공휴일, 일요일 제외)
   const breakHols=Object.entries(HOLIDAYS)
-    .filter(([ds])=>{ const dt=parseDate(ds); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); })
+    .filter(([ds])=>{
+      const dt=parseDate(ds);
+      if(dt.getDay()===0) return false; // 일요일 제외
+      return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve);
+    })
     .map(([ds,name])=>({date:ds,name}));
 
   // 방학중 연수
