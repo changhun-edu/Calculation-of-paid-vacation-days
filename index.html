@@ -1019,17 +1019,13 @@ function getBreakHolidays() {
       s: addDays(parseDate(v.vacStart), 1),
       e: addDays(parseDate(v.vacEnd), -1)
     }));
-  const result = Object.entries(HOLIDAYS_RAW)
+  return Object.entries(HOLIDAYS_RAW)
     .filter(([ds]) => {
       const dt = parseDate(ds);
       if (dt.getDay() === 0) return false;
       return periods.some(({s,e}) => dt >= s && dt <= e);
     })
     .map(([ds,name]) => ({date:ds, name}));
-  console.log('[DEBUG] HOLIDAYS_RAW 총:', Object.keys(HOLIDAYS_RAW).length,
-    '/ getBreakHolidays 결과:', result.length,
-    '/ 날짜:', result.map(h=>h.date));
-  return result;
 }
 
 // 단일 연월 공휴일 API 호출
@@ -1072,9 +1068,22 @@ async function loadHolidays() {
         return fetchHolidayMonth(y, m);
       })
     );
-    // 원본 저장 (기존 내용 비우고 새로 채움)
+    // 공휴일 저장: 방학기간에 속하는 날짜만, 일요일 제외
     Object.keys(HOLIDAYS_RAW).forEach(k => delete HOLIDAYS_RAW[k]);
-    results.flat().forEach(({ date, name }) => { HOLIDAYS_RAW[date] = name; });
+    const vacPeriods = state.vacations
+      .filter(v => v.vacStart && v.vacEnd)
+      .map(v => ({
+        s: addDays(parseDate(v.vacStart), 1),
+        e: addDays(parseDate(v.vacEnd), -1)
+      }));
+    results.flat().forEach(({ date, name }) => {
+      const dt = parseDate(date);
+      if (!dt) return;
+      if (dt.getDay() === 0) return; // 일요일 제외
+      if (vacPeriods.some(({s,e}) => dt >= s && dt <= e)) {
+        HOLIDAYS_RAW[date] = name; // 방학기간 내 공휴일만 저장
+      }
+    });
     holidayLoadStatus = 'done';
     showHolidayStatus('done');
     rebuildCalendars();
