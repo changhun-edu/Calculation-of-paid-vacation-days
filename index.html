@@ -1299,7 +1299,6 @@ function getBreakHolidays() {
   return Object.entries(HOLIDAYS_RAW)
     .filter(([ds]) => {
       const dt = parseDate(ds);
-      if (dt.getDay() === 0) return false;
       return periods.some(({s,e}) => dt >= s && dt <= e);
     })
     .map(([ds,name]) => ({date:ds, name}));
@@ -1356,9 +1355,8 @@ async function loadHolidays() {
     results.flat().forEach(({ date, name }) => {
       const dt = parseDate(date);
       if (!dt) return;
-      if (dt.getDay() === 0) return; // 일요일 제외
       if (vacPeriods.some(({s,e}) => dt >= s && dt <= e)) {
-        HOLIDAYS_RAW[date] = name; // 방학기간 내 공휴일만 저장
+        HOLIDAYS_RAW[date] = name; // 방학기간 내 공휴일 저장 (일요일 포함)
       }
     });
     holidayLoadStatus = 'done';
@@ -2279,7 +2277,10 @@ function updateResult(){
 
   // 토·일 유급
   const paidMap=calcPaidWeekends();
-  const paidArr=[...paidMap.keys()].sort();
+  let paidArr=[...paidMap.keys()].sort();
+  // 공휴일로 이미 카운트된 날짜는 토·일유급에서 제외 (중복 방지)
+  const holidaySet=new Set(breakHols.map(h=>h.date));
+  paidArr=paidArr.filter(ds=>!holidaySet.has(ds));
 
   // 합계
   const total=schoolDays+breakHols.length+trainingInBreak.length+workDays.length+paidArr.length;
@@ -2417,7 +2418,9 @@ function openPreview(){
   const breakHols=getBreakHolidays();
   const trainingInBreak=state.trainingDays.filter(t=>inBreak(parseDate(t.date)));
   const workDays=[...state.selectedWorkDays].filter(ds=>inBreak(parseDate(ds))).sort();
-  const paidArr=[...calcPaidWeekends().keys()].sort();
+  let paidArr=[...calcPaidWeekends().keys()].sort();
+  const holidaySetPv=new Set(breakHols.map(h=>h.date));
+  paidArr=paidArr.filter(ds=>!holidaySetPv.has(ds));
   const total=schoolDays+breakHols.length+trainingInBreak.length+workDays.length+paidArr.length;
   const diff=state.targetDays-total;
   const job=document.getElementById('jobCategory').value||'미선택';
