@@ -1365,17 +1365,48 @@ function updateVacDate(id, field, val){
   const v = state.vacations.find(v=>v.id===id);
   if(!v) return;
   v[field] = val;
+
   // 겨울방학(fixedEnd)의 방학식 변경 시 개학일(3.1) 자동 설정
-  // vacStart가 1~2월이면 같은 연도 3.1, 그 외(12월 등)면 다음 연도 3.1
   if(v.fixedEnd && field==='vacStart' && val){
     const year = parseInt(val.slice(0,4));
     const month = parseInt(val.slice(5,7));
-    // 방학식이 1~2월이면 같은 해 3.1, 12월이면 다음 해 3.1
     const endYear = month <= 2 ? year : year + 1;
     v.vacEnd = `${endYear}-03-01`;
   }
+
+  // 봄방학 방학식 입력 시 자동 처리
+  if(!v.fixedEnd && field==='vacStart' && val && isSpringVacation(v)){
+    autoAdjustSpringVacation(v, val);
+  }
+
   checkVacOverlap();
   resetHolidayAndRebuild();
+}
+
+// 봄방학 여부 판단: 겨울방학(fixedEnd) 이후에 위치한 방학
+function isSpringVacation(v){
+  return state.vacations.some(w => w.fixedEnd && w.id !== v.id);
+}
+
+// 봄방학 자동 처리:
+// 1) 봄방학 개학일 → 3.1 고정
+// 2) 겨울방학 개학일 → 봄방학 방학식으로 자동 조정
+function autoAdjustSpringVacation(v, vacStart){
+  const year = parseInt(vacStart.slice(0,4));
+  const month = parseInt(vacStart.slice(5,7));
+  // 봄방학 개학일: 같은 해 3.1 (봄방학식이 1~2월이므로)
+  const endYear = month <= 2 ? year : year + 1;
+  v.vacEnd = `${endYear}-03-01`;
+  v.fixedEnd = true; // 봄방학도 개학일 3.1 고정
+
+  // 겨울방학의 개학일을 봄방학 방학식으로 자동 조정
+  const winterVac = state.vacations.find(w => w.fixedEnd && w.id !== v.id &&
+    w.vacStart && w.vacStart < vacStart);
+  if(winterVac){
+    winterVac.vacEnd = vacStart;
+    winterVac.fixedEnd = false; // 겨울방학 고정 해제 (봄방학식으로 대체)
+  }
+  renderVacBlocks();
 }
 
 // 방학 기간 중복 감지 및 경고
@@ -1452,6 +1483,25 @@ function addVacation(){
 
 function removeVacation(id){
   if(state.vacations.length <= 1) return;
+
+  // 삭제 대상이 봄방학(fixedEnd+겨울방학 뒤)이면 겨울방학 개학일 3.1 복원
+  const removing = state.vacations.find(v=>v.id===id);
+  if(removing && removing.fixedEnd){
+    // 겨울방학(남아있는 fixedEnd 아닌 방학 중 가장 늦은 방학식 가진 것)을 복원
+    const winterVac = state.vacations.find(w =>
+      w.id !== id && w.vacStart && removing.vacStart &&
+      w.vacStart < removing.vacStart
+    );
+    if(winterVac && winterVac.vacEnd === removing.vacStart){
+      // 겨울방학 개학일을 3.1로 복원
+      const year = parseInt(winterVac.vacStart.slice(0,4));
+      const month = parseInt(winterVac.vacStart.slice(5,7));
+      const endYear = month <= 2 ? year : year + 1;
+      winterVac.vacEnd = `${endYear}-03-01`;
+      winterVac.fixedEnd = true;
+    }
+  }
+
   state.vacations = state.vacations.filter(v=>v.id!==id);
   // 삭제된 방학에 속한 선택 근무일 제거
   state.selectedWorkDays.forEach(ds=>{
