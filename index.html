@@ -211,6 +211,45 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 }
 .btn-add:hover{background:var(--navy);}
 
+/* 방학 블록 동적 */
+.btn-add-vac{
+  width:100%;background:var(--blue-lt);color:var(--navy);
+  border:2px dashed var(--blue);border-radius:8px;
+  padding:9px;font-size:0.92rem;font-weight:700;
+  cursor:pointer;font-family:var(--font);
+  transition:all 0.15s;
+}
+.btn-add-vac:hover{background:var(--blue);color:#fff;}
+.vac-block-wrap{
+  border:1.5px solid var(--gray-bd);border-radius:8px;
+  overflow:hidden;
+}
+.vac-block-hd{
+  display:flex;align-items:center;gap:8px;
+  background:var(--blue-lt);padding:8px 12px;
+  border-bottom:1px solid var(--gray-bd);
+}
+.vac-block-hd .vac-icon{font-size:1rem;}
+.vac-block-hd .vac-name{
+  flex:1;font-size:0.88rem;font-weight:700;color:var(--navy);
+  background:none;border:none;font-family:var(--font);
+  cursor:text;outline:none;width:80px;
+}
+.vac-block-hd .vac-name:focus{
+  border-bottom:1.5px solid var(--blue);
+}
+.btn-vac-del{
+  background:none;border:none;color:var(--gray);
+  cursor:pointer;font-size:1rem;padding:0 2px;
+  transition:color 0.15s;
+}
+.btn-vac-del:hover{color:var(--red);}
+.vac-block-bd{padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.vac-fixed-hint{
+  font-size:0.82rem;font-weight:600;color:var(--navy);
+  background:var(--blue-lt);border-radius:6px;padding:5px 9px;
+}
+
 /* 2단계 직종 선택 */
 .job-type-options{display:flex;flex-direction:column;gap:6px;}
 .job-type-opt{
@@ -652,33 +691,9 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
       <div class="card-hd open" onclick="toggleCard(this)">
         <span>📅</span> 방학 일정 입력 <span class="hd-arrow">▲</span>
       </div>
-      <div class="card-bd" style="gap:14px;">
-        <div class="vac-block">
-          <div class="vac-block-title">☀️ 여름방학</div>
-          <div class="form-row">
-            <label>방학식 날짜</label>
-            <input type="date" id="sumVacStart" value="2026-07-24" onchange="resetHolidayAndRebuild()">
-            <div class="form-hint">방학식 당일은 학기중 근무일</div>
-          </div>
-          <div class="form-row">
-            <label>개학일</label>
-            <input type="date" id="sumVacEnd" value="2026-08-19" onchange="resetHolidayAndRebuild()">
-            <div class="form-hint">개학일 당일은 학기중 근무일</div>
-          </div>
-        </div>
-        <hr class="vac-divider">
-        <div class="vac-block">
-          <div class="vac-block-title">❄️ 겨울방학</div>
-          <div class="form-row">
-            <label>방학식 날짜</label>
-            <input type="date" id="winVacStart" value="2027-01-07" onchange="resetHolidayAndRebuild()">
-            <div class="form-hint">방학식 당일은 학기중 근무일</div>
-          </div>
-          <div class="form-hint" style="background:var(--blue-lt);border-radius:6px;padding:6px 9px;color:var(--navy);font-weight:600;">
-            개학일: 3월 1일 (고정)
-          </div>
-          <input type="hidden" id="winVacEnd" value="2027-03-01">
-        </div>
+      <div class="card-bd" style="gap:10px;">
+        <div id="vacBlockList"></div>
+        <button class="btn-add-vac" onclick="addVacation()">＋ 방학 추가</button>
         <div id="holidayStatus" style="display:none;"></div>
       </div>
     </div>
@@ -924,13 +939,22 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 // ============================================================
 const state = {
   targetDays: 323,
-  sumVacStart: '2026-07-24',
-  sumVacEnd:   '2026-08-19',
-  winVacStart: '2027-01-07',
-  winVacEnd:   '2027-03-01',
+  // 방학 배열: [{id, icon, name, vacStart, vacEnd, fixedEnd}]
+  vacations: [
+    { id: 1, icon: '☀️', name: '여름방학', vacStart: '2026-07-24', vacEnd: '2026-08-19', fixedEnd: false },
+    { id: 2, icon: '❄️', name: '겨울방학', vacStart: '2027-01-07', vacEnd: '2027-03-01', fixedEnd: true  },
+  ],
+  vacIdSeq: 3,
   trainingDays: [],
   selectedWorkDays: new Set(),
 };
+
+// 하위 호환: 기존 코드가 state.sumVacStart 등을 직접 참조하는 부분을 위한 getter
+function getVacPairs() {
+  return state.vacations
+    .filter(v => v.vacStart && v.vacEnd)
+    .map(v => ({ s: parseDate(v.vacStart), e: parseDate(v.vacEnd) }));
+}
 
 // ============================================================
 // 공휴일 — 한국천문연구원 특일정보 API 연동
@@ -943,15 +967,11 @@ const API_KEY = '9e644bbc9679873e697c8e70127dc6c6d1073968698887cef1fc34aba8e0a36
 // 방학 기간(방학식 다음날 ~ 개학일 전날)에 해당하는 연월만 수집
 function getVacMonths() {
   const months = new Set();
-  const svs = parseDate(state.sumVacStart);
-  const sve = parseDate(state.sumVacEnd);
-  const wvs = parseDate(state.winVacStart);
-  const wve = parseDate(state.winVacEnd);
-  // 방학 시작: 방학식 다음날, 방학 끝: 개학일 전날
-  [[svs, sve], [wvs, wve]].forEach(([s, e]) => {
+  state.vacations.forEach(v => {
+    const s = parseDate(v.vacStart), e = parseDate(v.vacEnd);
     if (!s || !e) return;
-    const breakStart = addDays(s, 1);   // 방학식 다음날
-    const breakEnd   = addDays(e, -1);  // 개학일 전날
+    const breakStart = addDays(s, 1);
+    const breakEnd   = addDays(e, -1);
     if (breakStart > breakEnd) return;
     let cur = new Date(breakStart.getFullYear(), breakStart.getMonth(), 1);
     const last = new Date(breakEnd.getFullYear(), breakEnd.getMonth(), 1);
@@ -985,12 +1005,6 @@ async function fetchHolidayMonth(year, month) {
 
 // 방학 관련 전체 공휴일 로딩
 function resetHolidayAndRebuild() {
-  // winVacStart 연도 기준으로 winVacEnd(3월 1일) 자동 갱신
-  const wvs = document.getElementById('winVacStart').value;
-  if (wvs) {
-    const year = parseInt(wvs.slice(0,4));
-    document.getElementById('winVacEnd').value = `${year+1}-03-01`;
-  }
   HOLIDAYS = {};
   holidayLoadStatus = 'idle';
   showHolidayStatus('loading');
@@ -1155,6 +1169,91 @@ function updateJobType(){
 }
 
 // ============================================================
+// 방학 블록 렌더링
+// ============================================================
+const VAC_ICONS = ['☀️','❄️','🌸','🍂'];
+const VAC_NAMES = ['여름방학','겨울방학','봄방학','가을방학'];
+
+function renderVacBlocks(){
+  const wrap = document.getElementById('vacBlockList');
+  wrap.innerHTML = '';
+  state.vacations.forEach((v,i) => {
+    const div = document.createElement('div');
+    div.className = 'vac-block-wrap';
+    div.style.marginBottom = i < state.vacations.length-1 ? '8px' : '0';
+    const canDelete = state.vacations.length > 1;
+    div.innerHTML = `
+      <div class="vac-block-hd">
+        <span class="vac-icon">${v.icon}</span>
+        <input class="vac-name" type="text" value="${v.name}"
+          onchange="updateVacName(${v.id}, this.value)">
+        ${canDelete ? `<button class="btn-vac-del" onclick="removeVacation(${v.id})" title="삭제">✕</button>` : ''}
+      </div>
+      <div class="vac-block-bd">
+        <div class="form-row">
+          <label>방학식 날짜</label>
+          <input type="date" value="${v.vacStart}"
+            onchange="updateVacDate(${v.id},'vacStart',this.value)">
+          <div class="form-hint">방학식 당일은 학기중 근무일</div>
+        </div>
+        ${v.fixedEnd
+          ? `<div class="vac-fixed-hint">개학일: 3월 1일 (고정)</div>
+             <input type="hidden" value="${v.vacEnd}">`
+          : `<div class="form-row">
+               <label>개학일</label>
+               <input type="date" value="${v.vacEnd}"
+                 onchange="updateVacDate(${v.id},'vacEnd',this.value)">
+               <div class="form-hint">개학일 당일은 학기중 근무일</div>
+             </div>`
+        }
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+
+function updateVacName(id, name){
+  const v = state.vacations.find(v=>v.id===id);
+  if(v) v.name = name;
+}
+
+function updateVacDate(id, field, val){
+  const v = state.vacations.find(v=>v.id===id);
+  if(!v) return;
+  v[field] = val;
+  // 겨울방학(fixedEnd)의 방학식 변경 시 개학일 연도 자동 맞춤
+  if(v.fixedEnd && field==='vacStart' && val){
+    const year = parseInt(val.slice(0,4));
+    v.vacEnd = `${year+1}-03-01`;
+  }
+  resetHolidayAndRebuild();
+}
+
+function addVacation(){
+  const idx = Math.min(state.vacations.length, VAC_ICONS.length-1);
+  state.vacations.push({
+    id: state.vacIdSeq++,
+    icon: VAC_ICONS[idx],
+    name: VAC_NAMES[idx] || '추가방학',
+    vacStart: '', vacEnd: '',
+    fixedEnd: false,
+  });
+  renderVacBlocks();
+}
+
+function removeVacation(id){
+  if(state.vacations.length <= 1) return;
+  state.vacations = state.vacations.filter(v=>v.id!==id);
+  // 삭제된 방학에 속한 선택 근무일 제거
+  state.selectedWorkDays.forEach(ds=>{
+    if(!state.vacations.some(v=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); const dt=parseDate(ds); return s&&e&&dt>s&&dt<e; })){
+      state.selectedWorkDays.delete(ds);
+    }
+  });
+  renderVacBlocks();
+  resetHolidayAndRebuild();
+}
+
+// ============================================================
 // 연수일
 // ============================================================
 function setTrainingLabel(label){
@@ -1196,57 +1295,54 @@ function renderTrainingList(){
 // 달력 빌드
 // ============================================================
 function rebuildCalendars(){
-  state.sumVacStart = document.getElementById('sumVacStart').value;
-  state.sumVacEnd   = document.getElementById('sumVacEnd').value;
-  state.winVacStart = document.getElementById('winVacStart').value;
-  state.winVacEnd   = document.getElementById('winVacEnd').value;
-
-  // 공휴일 API: 날짜가 모두 입력된 경우 로딩 (처음 또는 방학 기간 변경 시)
-  if (state.sumVacStart && state.sumVacEnd && state.winVacStart && state.winVacEnd) {
-    if (holidayLoadStatus === 'idle' || holidayLoadStatus === 'error') {
-      loadHolidays(); // 비동기, 완료 후 rebuildCalendars 재호출됨
-      return;
-    }
+  // 공휴일 API 로딩 (처음 또는 변경 시)
+  const hasAnyVac = state.vacations.some(v=>v.vacStart&&v.vacEnd);
+  if (hasAnyVac && (holidayLoadStatus==='idle'||holidayLoadStatus==='error')) {
+    loadHolidays();
+    return;
   }
 
   const wrap = document.getElementById('calendarsWrap');
   wrap.innerHTML = '';
-
-  // 방학식/개학 날짜 기준으로 표시할 연월 자동 결정
   const months = getDisplayMonths();
   months.forEach(({y,m}) => wrap.appendChild(buildMonthCal(y,m)));
-
   updateResult();
 }
 
 function getDisplayMonths() {
-  // 여름: 방학식 달 + 다음달, 겨울: 방학식 달 + 다음달 — 항상 4개월만 표시
-  const svs = parseDate(state.sumVacStart);
-  const wvs = parseDate(state.winVacStart);
-  const sumY = svs ? svs.getFullYear() : 2026;
-  const sumM = svs ? svs.getMonth()+1 : 7;
-  const sumM2 = sumM === 12 ? 1 : sumM+1;
-  const sumY2 = sumM === 12 ? sumY+1 : sumY;
-  const winY = wvs ? wvs.getFullYear() : 2027;
-  const winM = wvs ? wvs.getMonth()+1 : 1;
-  const winM2 = winM === 12 ? 1 : winM+1;
-  const winY2 = winM === 12 ? winY+1 : winY;
-  return [
-    {y:sumY,  m:sumM},
-    {y:sumY2, m:sumM2},
-    {y:winY,  m:winM},
-    {y:winY2, m:winM2},
-  ];
+  // 각 방학별 방학식 달 + 다음달을 수집, 중복 제거
+  const seen = new Set();
+  const months = [];
+  state.vacations.forEach(v => {
+    const s = parseDate(v.vacStart);
+    if (!s) return;
+    const y = s.getFullYear(), m = s.getMonth()+1;
+    const m2 = m===12?1:m+1, y2 = m===12?y+1:y;
+    [[y,m],[y2,m2]].forEach(([ry,rm])=>{
+      const k=`${ry}-${rm}`;
+      if(!seen.has(k)){ seen.add(k); months.push({y:ry,m:rm}); }
+    });
+  });
+  if(months.length===0) return [{y:2026,m:7},{y:2026,m:8},{y:2027,m:1},{y:2027,m:2}];
+  // 연월 순 정렬
+  return months.sort((a,b)=>a.y!==b.y?a.y-b.y:a.m-b.m);
 }
 
 function inBreak(dt){
-  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
-  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
-  return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve);
+  return state.vacations.some(v=>{
+    const s=parseDate(v.vacStart), e=parseDate(v.vacEnd);
+    return s&&e&&dt>s&&dt<e;
+  });
 }
 function isVacEdge(ds){
-  return ds===state.sumVacStart||ds===state.sumVacEnd||
-         ds===state.winVacStart||ds===state.winVacEnd;
+  return state.vacations.some(v=>ds===v.vacStart||ds===v.vacEnd);
+}
+function getVacEdgeLabel(ds){
+  for(const v of state.vacations){
+    if(ds===v.vacStart) return '방학식';
+    if(ds===v.vacEnd)   return '개학';
+  }
+  return '';
 }
 
 function buildMonthCal(year, month){
@@ -1296,8 +1392,7 @@ function buildMonthCal(year, month){
       badge=HOLIDAYS[ds];
     } else if(isEdge){
       cell.classList.add('s-vac-edge');
-      if(ds===state.sumVacStart||ds===state.winVacStart) badge='방학식';
-      else badge='개학';
+      badge=getVacEdgeLabel(ds);
     } else if(!isBreak){
       cell.classList.add('s-school');
     } else if(dow===0||dow===6){
@@ -1379,45 +1474,51 @@ function refreshPaidWeekends(){
 // 토·일 유급 계산
 // ============================================================
 function calcPaidWeekends(){
-  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
-  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
   const paid=new Set();
-
-  // 방학 기간 내 모든 주 수집
   const weekStarts=new Set();
-  [[svs,sve],[wvs,wve]].forEach(([s,e])=>{
+
+  // 모든 방학 기간 내 주 수집
+  state.vacations.forEach(v=>{
+    const s=parseDate(v.vacStart), e=parseDate(v.vacEnd);
     if(!s||!e) return;
     let cur=addDays(s,1);
-    while(cur<e){ const dow=cur.getDay(); weekStarts.add(dateStr(addDays(cur,-(dow===0?6:dow-1)))); cur=addDays(cur,1); }
-  });
-  // 방학식 주 추가
-  [state.sumVacStart,state.winVacStart].forEach(ds=>{
-    if(!ds) return;
-    const dt=parseDate(ds); const dow=dt.getDay();
-    weekStarts.add(dateStr(addDays(dt,-(dow===0?6:dow-1))));
+    while(cur<e){
+      const dow=cur.getDay();
+      weekStarts.add(dateStr(addDays(cur,-(dow===0?6:dow-1))));
+      cur=addDays(cur,1);
+    }
+    // 방학식 주 추가
+    const dow=s.getDay();
+    weekStarts.add(dateStr(addDays(s,-(dow===0?6:dow-1))));
   });
 
   weekStarts.forEach(monStr=>{
     const mon=parseDate(monStr);
     const week=Array.from({length:7},(_,i)=>addDays(mon,i));
     const sat=week[5], sun=week[6];
+    const sunDs=dateStr(sun), satDs=dateStr(sat);
 
-    // 해당 주 방학중 근무일수
+    // 해당 주 각 근무일 집계
     let brkWork=0, totalWork=0, hasVacStart=false;
     week.slice(0,5).forEach(dt=>{
       const ds=dateStr(dt);
       const isHol=!!HOLIDAYS[ds];
-      const isEdge=isVacEdge(ds);
       const isBrk=inBreak(dt);
-      if(ds===state.sumVacStart||ds===state.winVacStart){ hasVacStart=true; totalWork++; }
-      else if(!isBrk&&!isHol){ totalWork++; }
-      if(isBrk&&!isHol){
+
+      if(state.vacations.some(v=>ds===v.vacStart)){
+        hasVacStart=true;
+        totalWork++;
+      } else if(!isBrk){
+        // 학기중 근무일 (공휴일 여부 무관 — 규정상 학기중 근무일 전체 포함)
+        totalWork++;
+      } else if(isBrk && !isHol){
+        // 방학중 선택 근무일 (공휴일 제외)
         const isWrk=state.selectedWorkDays.has(ds)||state.trainingDays.some(t=>t.date===ds);
         if(isWrk){ brkWork++; totalWork++; }
       }
     });
 
-    // 다음 주 방학중 근무
+    // 다음 주 방학중 근무 여부
     let nextBrkWork=0;
     for(let i=0;i<5;i++){
       const dt=addDays(mon,7+i); const ds=dateStr(dt);
@@ -1426,15 +1527,17 @@ function calcPaidWeekends(){
       }
     }
 
-    const sunDs=dateStr(sun), satDs=dateStr(sat);
-    const sunInRange=(svs&&sve&&sun>=svs&&sun<=sve)||(wvs&&wve&&sun>=wvs&&sun<=wve);
-    const satInRange=(svs&&sve&&sat>=svs&&sat<=sve)||(wvs&&wve&&sat>=wvs&&sat<=wve);
+    // 방학기간에 포함되는지 확인
+    const sunInRange=state.vacations.some(v=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); return s&&e&&sun>=s&&sun<=e; });
+    const satInRange=state.vacations.some(v=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); return s&&e&&sat>=s&&sat<=e; });
 
     // [원칙] 방학중 근무 2일 이상 → 일요일 유급
     if(brkWork>=2 && sunInRange) paid.add(sunDs);
-    // 다음 주 1일 이상 → 토요일도 유급
-    if(brkWork>=2 && nextBrkWork>=1 && satInRange) paid.add(satDs);
-    // [예외] 방학식 주 전체 근무 2일 이상 → 일요일 유급
+    // 방학중 근무 2일 이상 + 다음 주 1일 이상 → 토요일도 유급
+    // 단, 토요일이 공휴일이면 이미 공휴일로 계산되므로 토유급 제외 (중복 방지)
+    if(brkWork>=2 && nextBrkWork>=1 && satInRange && !HOLIDAYS[satDs]) paid.add(satDs);
+
+    // [예외] 방학식 포함 주, 전체 근무일(학기중+방학중 무관) 2일 이상 → 일요일 유급
     if(hasVacStart && totalWork>=2 && sunInRange) paid.add(sunDs);
   });
 
@@ -1445,22 +1548,23 @@ function calcPaidWeekends(){
 // 학기중 일수 계산
 // ============================================================
 function calcSchoolDays(){
-  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
-  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
+  // 학년도 시작: 가장 이른 방학식 연도의 3월 1일
+  // 학년도 끝: fixedEnd=true인 방학(겨울)의 개학일 전날, 없으면 마지막 방학 개학일 전날
+  const allVacs = state.vacations.filter(v=>v.vacStart&&v.vacEnd);
+  if(allVacs.length===0) return 0;
 
-  // 학년도 시작: 여름방학식 연도의 3월 1일
-  // 학년도 끝: 겨울개학일(3.1)의 전날 = 2월 말일 (윤년 자동 처리)
-  const schoolYear = svs ? svs.getFullYear() : 2026;
-  const start = new Date(schoolYear, 2, 1);          // 3월 1일
-  const wveDate = wve ? wve : new Date(schoolYear+1, 2, 1);
-  const end = addDays(wveDate, -1);                  // 개학일 전날 = 2월 말일
+  const starts = allVacs.map(v=>parseDate(v.vacStart)).filter(Boolean);
+  const schoolYear = Math.min(...starts.map(d=>d.getFullYear()));
+  const start = new Date(schoolYear, 2, 1); // 3월 1일
+
+  // 학년도 끝: fixedEnd(겨울방학 개학=3.1) 우선, 없으면 가장 늦은 개학일 전날
+  let endVac = allVacs.find(v=>v.fixedEnd);
+  if(!endVac) endVac = allVacs.reduce((a,b)=>b.vacEnd>a.vacEnd?b:a);
+  const end = addDays(parseDate(endVac.vacEnd), -1);
 
   let n=0, cur=new Date(start);
   while(cur<=end){
-    // 방학 기간(방학식 다음날 ~ 개학일 전날) 제외
-    const inS=svs&&sve&&cur>svs&&cur<sve;
-    const inW=wvs&&wve&&cur>wvs&&cur<wve;
-    if(!inS&&!inW) n++;
+    if(!inBreak(cur)) n++;
     cur=addDays(cur,1);
   }
   return n;
@@ -1470,31 +1574,22 @@ function calcSchoolDays(){
 // 결과 업데이트
 // ============================================================
 function updateResult(){
-  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
-  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
-
   const schoolDays=calcSchoolDays();
 
-  // 방학중 공휴일 (일요일 제외 — 규정: "관공서 공휴일에 관한 규정"에 따른 공휴일, 일요일 제외)
+  // 방학중 공휴일 (일요일 제외)
   const breakHols=Object.entries(HOLIDAYS)
     .filter(([ds])=>{
       const dt=parseDate(ds);
-      if(dt.getDay()===0) return false; // 일요일 제외
-      return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve);
+      if(dt.getDay()===0) return false;
+      return inBreak(dt);
     })
     .map(([ds,name])=>({date:ds,name}));
 
   // 방학중 연수
-  const trainingInBreak=state.trainingDays.filter(t=>{
-    const dt=parseDate(t.date);
-    return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve);
-  });
+  const trainingInBreak=state.trainingDays.filter(t=>inBreak(parseDate(t.date)));
 
   // 선택 근무일
-  const workDays=[...state.selectedWorkDays].filter(ds=>{
-    const dt=parseDate(ds);
-    return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve);
-  }).sort();
+  const workDays=[...state.selectedWorkDays].filter(ds=>inBreak(parseDate(ds))).sort();
 
   // 토·일 유급
   const paidSet=calcPaidWeekends();
@@ -1549,19 +1644,13 @@ function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,tot
   const cat=document.getElementById('jobCategory').value||'미선택';
   const job=cat;
 
-  const sumWork=workDays.filter(ds=>svs&&sve&&parseDate(ds)>svs&&parseDate(ds)<sve);
-  const winWork=workDays.filter(ds=>wvs&&wve&&parseDate(ds)>wvs&&parseDate(ds)<wve);
-  const sumHols=breakHols.filter(h=>svs&&sve&&parseDate(h.date)>svs&&parseDate(h.date)<sve);
-  const winHols=breakHols.filter(h=>wvs&&wve&&parseDate(h.date)>wvs&&parseDate(h.date)<wve);
-  const sumTrn=trainingInBreak.filter(t=>svs&&sve&&parseDate(t.date)>svs&&parseDate(t.date)<sve);
-  const winTrn=trainingInBreak.filter(t=>wvs&&wve&&parseDate(t.date)>wvs&&parseDate(t.date)<wve);
-  const sumWk=paidArr.filter(ds=>svs&&sve&&parseDate(ds)>=svs&&parseDate(ds)<=sve);
-  const winWk=paidArr.filter(ds=>wvs&&wve&&parseDate(ds)>=wvs&&parseDate(ds)<=wve);
-
   const chip=(ds,cls)=>`<span class="date-chip ${cls}">${fmtShort(ds)}</span>`;
   const chips=(arr,cls)=>arr.map(ds=>chip(ds,cls)).join('')||'<span style="color:#aaa">-</span>';
   const holChips=(arr)=>arr.map(h=>`<span class="date-chip chip-holiday">${fmtShort(h.date)}</span>`).join('')||'<span style="color:#aaa">-</span>';
   const trnChips=(arr)=>arr.map(t=>`<span class="date-chip chip-training">${fmtShort(t.date)}&nbsp;${t.label}</span>`).join('')||'<span style="color:#aaa">-</span>';
+
+  const inVac=(ds,v)=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); const dt=parseDate(ds); return s&&e&&dt>s&&dt<e; };
+  const inVacRange=(ds,v)=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); const dt=parseDate(ds); return s&&e&&dt>=s&&dt<=e; };
 
   const secTable=(work,hols,trn,wk)=>`
     <table class="res-table">
@@ -1573,18 +1662,28 @@ function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,tot
       <tr class="total-row"><td colspan="2">소계</td><td>${work.length+hols.length+trn.length+wk.length}일</td></tr>
     </table>`;
 
+  const vacInfoItems = state.vacations.map(v=>
+    `<div class="ri-item"><div class="ri-label">${v.icon} ${v.name}</div><div class="ri-val">${v.vacStart?fmtShort(v.vacStart)+'~'+fmtShort(addDays(parseDate(v.vacEnd),-1)):'-'}</div></div>`
+  ).join('');
+
+  const vacSections = state.vacations.map(v=>{
+    const vw=workDays.filter(ds=>inVac(ds,v));
+    const vh=breakHols.filter(h=>inVac(h.date,v));
+    const vt=trainingInBreak.filter(t=>inVac(t.date,v));
+    const vk=paidArr.filter(ds=>inVacRange(ds,v));
+    return `<div class="result-sec"><h4>${v.icon} ${v.name}</h4>${secTable(vw,vh,vt,vk)}</div>`;
+  }).join('');
+
   const diffText=diff===0?'&nbsp;✅':diff>0?`&nbsp;(▲${diff}일 부족)`:`&nbsp;(▼${Math.abs(diff)}일 초과)`;
 
   document.getElementById('resultBody').innerHTML=`
     <div class="result-info-grid">
       <div class="ri-item"><div class="ri-label">직종</div><div class="ri-val">${job}</div></div>
       <div class="ri-item"><div class="ri-label">연간 유급일수</div><div class="ri-val">${state.targetDays}일</div></div>
-      <div class="ri-item"><div class="ri-label">여름방학</div><div class="ri-val">${state.sumVacStart?fmtShort(state.sumVacStart)+'~'+fmtShort(addDays(parseDate(state.sumVacEnd),-1)):'-'}</div></div>
-      <div class="ri-item"><div class="ri-label">겨울방학</div><div class="ri-val">${state.winVacStart?fmtShort(state.winVacStart)+'~'+fmtShort(addDays(parseDate(state.winVacEnd),-1)):'-'}</div></div>
+      ${vacInfoItems}
     </div>
     <div class="result-cols">
-      <div class="result-sec"><h4>☀️ 여름방학</h4>${secTable(sumWork,sumHols,sumTrn,sumWk)}</div>
-      <div class="result-sec"><h4>❄️ 겨울방학</h4>${secTable(winWork,winHols,winTrn,winWk)}</div>
+      ${vacSections}
     </div>
     <div class="formula-box">
       학기중 ${schoolDays}일 + 공휴일 ${breakHols.length}일 + 연수 ${trainingInBreak.length}일 + 출근 ${workDays.length}일 + 토·일유급 ${paidArr.length}일
@@ -1674,16 +1773,18 @@ function resetAll(){
   document.getElementById('jobTypeRow').style.display='none';
   document.getElementById('jobResult').style.display='none';
   document.getElementById('jobType').value='323';
-  document.getElementById('sumVacStart').value='2026-07-24';
-  document.getElementById('sumVacEnd').value='2026-08-19';
-  document.getElementById('winVacStart').value='2027-01-07';
-  document.getElementById('winVacEnd').value='2027-03-01';
+  state.vacations=[
+    { id:1, icon:'☀️', name:'여름방학', vacStart:'2026-07-24', vacEnd:'2026-08-19', fixedEnd:false },
+    { id:2, icon:'❄️', name:'겨울방학', vacStart:'2027-01-07', vacEnd:'2027-03-01', fixedEnd:true  },
+  ];
+  state.vacIdSeq=3;
   state.trainingDays=[];
   state.selectedWorkDays=new Set();
   state.targetDays=323;
   document.getElementById('cb-target').textContent='323';
+  renderVacBlocks();
   renderTrainingList();
-  rebuildCalendars();
+  resetHolidayAndRebuild();
 }
 
 // ============================================================
@@ -1700,7 +1801,7 @@ window.addEventListener('popstate',()=>history.pushState(null,'',location.href))
 // ============================================================
 // 초기 실행
 // ============================================================
-window.addEventListener('load', rebuildCalendars);
+window.addEventListener('load', ()=>{ renderVacBlocks(); rebuildCalendars(); });
 </script>
 </body>
 </html>
