@@ -1308,7 +1308,7 @@ function buildMonthCal(year, month){
       cell.addEventListener('click',()=>toggleWork(ds));
     } else {
       cell.classList.add('s-off','clickable');
-      cell.addEventListener('click',()=>toggleWork(ds));
+      cell.onclick = ()=>toggleWork(ds);
     }
 
     if(badge){
@@ -1322,30 +1322,29 @@ function buildMonthCal(year, month){
 }
 
 function toggleWork(ds){
+  const cell = document.querySelector(`[data-date="${ds}"]`);
+  const dow = parseDate(ds).getDay();
+  const dowCls = dow===0?' day-sunday':dow===6?' day-saturday':'';
+  const dayNum = parseInt(ds.slice(8));
+
   if(state.selectedWorkDays.has(ds)){
+    // 해제 → 비근무(흰색)로 변경
     state.selectedWorkDays.delete(ds);
-    // 셀을 비근무(흰색)로 즉시 변경
-    const cell = document.querySelector(`[data-date="${ds}"]`);
     if(cell){
-      const dow = parseDate(ds).getDay();
-      cell.className = 'cal-day s-off clickable' + (dow===0?' day-sunday':dow===6?' day-saturday':'');
-      cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div>`;
-      cell.addEventListener('click', ()=>toggleWork(ds));
+      cell.className = 'cal-day s-off clickable' + dowCls;
+      cell.innerHTML = `<div class="day-num">${dayNum}</div>`;
+      cell.onclick = () => toggleWork(ds);
     }
   } else {
+    // 선택 → 근무일(초록)로 변경
     state.selectedWorkDays.add(ds);
-    // 셀을 근무일(초록)로 즉시 변경
-    const cell = document.querySelector(`[data-date="${ds}"]`);
     if(cell){
-      const dow = parseDate(ds).getDay();
-      cell.className = 'cal-day s-work' + (dow===0?' day-sunday':dow===6?' day-saturday':'');
-      cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div><div class="day-badge">✓근무</div>`;
-      cell.addEventListener('click', ()=>toggleWork(ds));
+      cell.className = 'cal-day s-work' + dowCls;
+      cell.innerHTML = `<div class="day-num">${dayNum}</div><div class="day-badge">✓근무</div>`;
+      cell.onclick = () => toggleWork(ds);
     }
   }
-  // 달력 전체 재빌드 없이 카운터·결과표만 업데이트
   updateResult();
-  // 토·일 유급 셀만 재계산하여 반영
   refreshPaidWeekends();
 }
 
