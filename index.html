@@ -90,23 +90,33 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   height:52px;
 }
 .cb-sum-box{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:10px;
   background:rgba(255,255,255,0.08);
-  border-radius:8px;
-  padding:4px 12px;
-  border:1.5px solid transparent;
+  border-radius:10px;
+  padding:5px 16px;
+  border:2px solid transparent;
   transition:all 0.3s;
   white-space:nowrap;
 }
-.cb-sum-box.ok{background:rgba(22,163,74,0.25);border-color:#4ade80;}
-.cb-sum-box.low{background:rgba(220,38,38,0.2);border-color:#f87171;}
-.cb-sum-box.over{background:rgba(217,119,6,0.2);border-color:#fbbf24;}
+.cb-sum-box.ok{
+  background:rgba(22,163,74,0.3);border-color:#4ade80;
+  box-shadow:0 0 12px rgba(74,222,128,0.35);
+}
+.cb-sum-box.low{background:rgba(220,38,38,0.22);border-color:#f87171;}
+.cb-sum-box.over{background:rgba(217,119,6,0.22);border-color:#fbbf24;}
 .cb-sum-label{font-size:0.75rem;color:#cbd5e1;}
-.cb-sum-val{font-size:1.15rem;font-weight:700;color:#fff;}
-.cb-remain{font-size:0.82rem;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;}
-.cb-remain.ok{color:#4ade80;}
-.cb-remain.low{color:#f87171;}
-.cb-remain.over{color:#fbbf24;}
+.cb-sum-val{font-size:1.35rem;font-weight:700;color:#fff;letter-spacing:-0.5px;}
+.cb-sum-val.ok{color:#4ade80;}
+.cb-sum-val.low{color:#fca5a5;}
+.cb-sum-val.over{color:#fcd34d;}
+.cb-remain{
+  font-size:0.88rem;font-weight:700;
+  padding:5px 11px;border-radius:7px;
+  white-space:nowrap;border:1.5px solid transparent;
+}
+.cb-remain.ok{color:#4ade80;border-color:#166534;background:rgba(22,163,74,0.2);}
+.cb-remain.low{color:#fca5a5;border-color:#7f1d1d;background:rgba(220,38,38,0.15);}
+.cb-remain.over{color:#fcd34d;border-color:#78350f;background:rgba(217,119,6,0.15);}
 
 /* 탭 버튼 — 맨 오른쪽 */
 .tab-nav{
@@ -200,6 +210,31 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   font-family:var(--font);font-weight:700;
 }
 .btn-add:hover{background:var(--navy);}
+
+/* 2단계 직종 선택 */
+.job-type-options{display:flex;flex-direction:column;gap:6px;}
+.job-type-opt{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:8px;
+  border:2px solid var(--gray-bd);
+  cursor:pointer;transition:all 0.15s;
+  background:#fff;
+}
+.job-type-opt:hover{border-color:var(--blue);background:var(--blue-xl);}
+.job-type-opt.selected{border-color:var(--blue);background:var(--blue-lt);}
+.job-type-opt input[type="radio"]{accent-color:var(--blue);width:16px;height:16px;flex-shrink:0;}
+.job-type-opt .opt-label{font-size:0.92rem;font-weight:700;color:var(--text);flex:1;}
+.job-type-opt .opt-days{
+  font-size:0.82rem;font-weight:700;color:var(--blue);
+  background:var(--blue-xl);border-radius:5px;padding:2px 8px;white-space:nowrap;
+}
+.job-result{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--green-xl);border:1.5px solid #86efac;
+  border-radius:8px;padding:9px 14px;
+}
+.job-result-label{font-size:0.85rem;color:var(--green-dk);font-weight:600;}
+.job-result-val{font-size:1.15rem;font-weight:700;color:var(--green-dk);}
 
 /* 빠른 연수 태그 */
 .quick-tags{display:flex;flex-wrap:wrap;gap:5px;}
@@ -578,15 +613,37 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
       <div class="card-hd open" onclick="toggleCard(this)">
         <span>👤</span> 기본 정보 <span class="hd-arrow">▲</span>
       </div>
-      <div class="card-bd">
+      <div class="card-bd" style="gap:12px;">
+
+        <!-- 1단계: 직종 선택 -->
         <div class="form-row">
-          <label>직종 / 연간 유급일수</label>
-          <select id="jobType" onchange="updateJobType()">
-            <option value="323">조리사·조리실무사 등 (323일)</option>
-            <option value="333">2식 급식학교 조리실무사 (333일)</option>
-            <option value="365">상시근무 (365일)</option>
+          <label>1단계 · 직종 선택</label>
+          <select id="jobCategory" onchange="updateJobCategory()">
+            <option value="">-- 직종을 선택하세요 --</option>
+            <option value="조리사">조리사</option>
+            <option value="조리실무사">조리실무사</option>
+            <option value="과학실무사">과학실무사</option>
+            <option value="특수교육실무사">특수교육실무사</option>
+            <option value="통학실무사">통학실무사</option>
+            <option value="돌봄교실강사">돌봄교실강사</option>
           </select>
         </div>
+
+        <!-- 2단계: 근무 유형 (직종에 따라 동적 표시) -->
+        <div class="form-row" id="jobTypeRow" style="display:none;">
+          <label>2단계 · 근무 유형</label>
+          <div class="job-type-options" id="jobTypeOptions"></div>
+        </div>
+
+        <!-- 선택 결과 표시 -->
+        <div class="job-result" id="jobResult" style="display:none;">
+          <div class="job-result-label">연간 유급일수</div>
+          <div class="job-result-val" id="jobResultVal">-</div>
+        </div>
+
+        <!-- 숨겨진 실제 값 -->
+        <input type="hidden" id="jobType" value="323">
+
       </div>
     </div>
 
@@ -1004,8 +1061,86 @@ function toggleGuide(hd){
 }
 
 // ============================================================
-// 직종 변경
+// 직종 2단계 선택
 // ============================================================
+
+// 직종별 근무 유형 정의
+const JOB_TYPES = {
+  '조리사': [
+    { label: '일반 (방학중 비근무)', days: 323 },
+    { label: '방학중 급식·방과후 실시', days: 365 },
+  ],
+  '조리실무사': [
+    { label: '일반 (방학중 비근무)', days: 323 },
+    { label: '2식 급식학교', days: 333 },
+    { label: '3식 급식학교 / 방학중 급식 실시', days: 365 },
+  ],
+  '과학실무사': [
+    { label: '일반 (방학중 비근무)', days: 323 },
+  ],
+  '특수교육실무사': [
+    { label: '일반 (방학중 비근무)', days: 323 },
+    { label: '단설·병설유치원 (방학중 급식·방과후 실시)', days: 365 },
+  ],
+  '통학실무사': [
+    { label: '일반 (방학중 비근무)', days: 323 },
+  ],
+  '돌봄교실강사': [
+    { label: '일반 (방학중 비근무)', days: 323 },
+  ],
+};
+
+function updateJobCategory() {
+  const cat = document.getElementById('jobCategory').value;
+  const typeRow = document.getElementById('jobTypeRow');
+  const typeOpts = document.getElementById('jobTypeOptions');
+  const jobResult = document.getElementById('jobResult');
+
+  if (!cat) {
+    typeRow.style.display = 'none';
+    jobResult.style.display = 'none';
+    return;
+  }
+
+  const types = JOB_TYPES[cat] || [];
+
+  // 단일 유형이면 2단계 건너뛰고 바로 확정
+  if (types.length === 1) {
+    typeRow.style.display = 'none';
+    setJobDays(types[0].days, cat, types[0].label);
+    return;
+  }
+
+  // 복수 유형이면 라디오 버튼 렌더
+  typeRow.style.display = 'block';
+  typeOpts.innerHTML = types.map((t, i) => `
+    <label class="job-type-opt" onclick="selectJobType(this, ${t.days}, '${cat}', '${t.label}')">
+      <input type="radio" name="jobTypeRadio" value="${t.days}" ${i===0?'checked':''}>
+      <span class="opt-label">${t.label}</span>
+      <span class="opt-days">${t.days}일</span>
+    </label>`).join('');
+
+  // 첫 번째 항목 자동 선택
+  typeOpts.querySelector('.job-type-opt').classList.add('selected');
+  setJobDays(types[0].days, cat, types[0].label);
+}
+
+function selectJobType(el, days, cat, label) {
+  document.querySelectorAll('.job-type-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  setJobDays(days, cat, label);
+}
+
+function setJobDays(days, cat, label) {
+  document.getElementById('jobType').value = days;
+  state.targetDays = days;
+  document.getElementById('cb-target').textContent = days;
+  const resultEl = document.getElementById('jobResult');
+  resultEl.style.display = 'flex';
+  document.getElementById('jobResultVal').textContent = `${cat} · ${label} → ${days}일`;
+  updateResult();
+}
+
 function updateJobType(){
   state.targetDays = parseInt(document.getElementById('jobType').value);
   document.getElementById('cb-target').textContent = state.targetDays;
@@ -1306,9 +1441,17 @@ function calcPaidWeekends(){
 function calcSchoolDays(){
   const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
   const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
-  const start=new Date(2026,2,1), end=new Date(2027,1,28);
+
+  // 학년도 시작: 여름방학식 연도의 3월 1일
+  // 학년도 끝: 겨울개학일(3.1)의 전날 = 2월 말일 (윤년 자동 처리)
+  const schoolYear = svs ? svs.getFullYear() : 2026;
+  const start = new Date(schoolYear, 2, 1);          // 3월 1일
+  const wveDate = wve ? wve : new Date(schoolYear+1, 2, 1);
+  const end = addDays(wveDate, -1);                  // 개학일 전날 = 2월 말일
+
   let n=0, cur=new Date(start);
   while(cur<=end){
+    // 방학 기간(방학식 다음날 ~ 개학일 전날) 제외
     const inS=svs&&sve&&cur>svs&&cur<sve;
     const inW=wvs&&wve&&cur>wvs&&cur<wve;
     if(!inS&&!inW) n++;
@@ -1361,12 +1504,19 @@ function updateResult(){
 
   const sumBox=document.getElementById('cb-sum-box');
   const rem=document.getElementById('cb-remain');
+  const totalEl=document.getElementById('cb-total');
   if(diff===0){
-    sumBox.className='cb-sum-box ok'; rem.className='cb-remain ok'; rem.textContent='✅ 목표 달성!';
+    sumBox.className='cb-sum-box ok';
+    totalEl.className='cb-sum-val ok';
+    rem.className='cb-remain ok'; rem.textContent='✅ 목표 달성!';
   } else if(diff>0){
-    sumBox.className='cb-sum-box low'; rem.className='cb-remain low'; rem.textContent=`▲ ${diff}일 부족`;
+    sumBox.className='cb-sum-box low';
+    totalEl.className='cb-sum-val low';
+    rem.className='cb-remain low'; rem.textContent=`▲ ${diff}일 부족`;
   } else {
-    sumBox.className='cb-sum-box over'; rem.className='cb-remain over'; rem.textContent=`▼ ${Math.abs(diff)}일 초과`;
+    sumBox.className='cb-sum-box over';
+    totalEl.className='cb-sum-val over';
+    rem.className='cb-remain over'; rem.textContent=`▼ ${Math.abs(diff)}일 초과`;
   }
 
   // 달력 토·일 유급 셀 업데이트
@@ -1386,8 +1536,8 @@ function updateResult(){
 // 결과표 렌더
 // ============================================================
 function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,total,diff,svs,sve,wvs,wve}){
-  const jobSel=document.getElementById('jobType');
-  const job=jobSel.options[jobSel.selectedIndex].text.split('(')[0].trim();
+  const cat=document.getElementById('jobCategory').value||'미선택';
+  const job=cat;
 
   const sumWork=workDays.filter(ds=>svs&&sve&&parseDate(ds)>svs&&parseDate(ds)<sve);
   const winWork=workDays.filter(ds=>wvs&&wve&&parseDate(ds)>wvs&&parseDate(ds)<wve);
@@ -1453,8 +1603,7 @@ function openPreview(){
   const total=schoolDays+breakHols.length+trainingInBreak.length+workDays.length+paidArr.length;
   const diff=state.targetDays-total;
 
-  const jobSel=document.getElementById('jobType');
-  const job=jobSel.options[jobSel.selectedIndex].text.split('(')[0].trim();
+  const job=document.getElementById('jobCategory').value||'미선택';
 
   const sumWork=workDays.filter(ds=>svs&&sve&&parseDate(ds)>svs&&parseDate(ds)<sve);
   const winWork=workDays.filter(ds=>wvs&&wve&&parseDate(ds)>wvs&&parseDate(ds)<wve);
@@ -1511,6 +1660,9 @@ document.getElementById('previewModal').addEventListener('click',e=>{ if(e.targe
 // ============================================================
 function resetAll(){
   if(!confirm('모든 입력 내용을 초기화하시겠습니까?')) return;
+  document.getElementById('jobCategory').value='';
+  document.getElementById('jobTypeRow').style.display='none';
+  document.getElementById('jobResult').style.display='none';
   document.getElementById('jobType').value='323';
   document.getElementById('sumVacStart').value='2026-07-24';
   document.getElementById('sumVacEnd').value='2026-08-19';
