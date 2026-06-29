@@ -1317,10 +1317,14 @@ function updateVacDate(id, field, val){
   const v = state.vacations.find(v=>v.id===id);
   if(!v) return;
   v[field] = val;
-  // 겨울방학(fixedEnd)의 방학식 변경 시 개학일 연도 자동 맞춤
+  // 겨울방학(fixedEnd)의 방학식 변경 시 개학일(3.1) 자동 설정
+  // vacStart가 1~2월이면 같은 연도 3.1, 그 외(12월 등)면 다음 연도 3.1
   if(v.fixedEnd && field==='vacStart' && val){
     const year = parseInt(val.slice(0,4));
-    v.vacEnd = `${year+1}-03-01`;
+    const month = parseInt(val.slice(5,7));
+    // 방학식이 1~2월이면 같은 해 3.1, 12월이면 다음 해 3.1
+    const endYear = month <= 2 ? year : year + 1;
+    v.vacEnd = `${endYear}-03-01`;
   }
   resetHolidayAndRebuild();
 }
