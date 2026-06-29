@@ -1213,35 +1213,73 @@ function renderVacBlocks(){
   const wrap = document.getElementById('vacBlockList');
   wrap.innerHTML = '';
   state.vacations.forEach((v,i) => {
+    const canDelete = state.vacations.length > 1;
     const div = document.createElement('div');
     div.className = 'vac-block-wrap';
     div.style.marginBottom = i < state.vacations.length-1 ? '8px' : '0';
-    const canDelete = state.vacations.length > 1;
-    div.innerHTML = `
-      <div class="vac-block-hd">
-        <span class="vac-icon">${v.icon}</span>
-        <input class="vac-name" type="text" value="${v.name}"
-          onchange="updateVacName(${v.id}, this.value)">
-        ${canDelete ? `<button class="btn-vac-del" onclick="removeVacation(${v.id})" title="삭제">✕</button>` : ''}
-      </div>
-      <div class="vac-block-bd">
-        <div class="form-row">
-          <label>방학식 날짜</label>
-          <input type="date" value="${v.vacStart}"
-            onchange="updateVacDate(${v.id},'vacStart',this.value)">
-          <div class="form-hint">방학식 당일은 학기중 근무일</div>
-        </div>
-        ${v.fixedEnd
-          ? `<div class="vac-fixed-hint">개학일: 3월 1일 (고정)</div>
-             <input type="hidden" value="${v.vacEnd}">`
-          : `<div class="form-row">
-               <label>개학일</label>
-               <input type="date" value="${v.vacEnd}"
-                 onchange="updateVacDate(${v.id},'vacEnd',this.value)">
-               <div class="form-hint">개학일 당일은 학기중 근무일</div>
-             </div>`
-        }
-      </div>`;
+
+    // 헤더
+    const hd = document.createElement('div');
+    hd.className = 'vac-block-hd';
+    hd.innerHTML = '<span class="vac-icon">'+v.icon+'</span>';
+    const nameInput = document.createElement('input');
+    nameInput.className = 'vac-name';
+    nameInput.type = 'text';
+    nameInput.value = v.name;
+    nameInput.onchange = function(){ updateVacName(v.id, this.value); };
+    hd.appendChild(nameInput);
+    if(canDelete){
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn-vac-del';
+      delBtn.title = '삭제';
+      delBtn.textContent = '✕';
+      delBtn.onclick = function(){ removeVacation(v.id); };
+      hd.appendChild(delBtn);
+    }
+    div.appendChild(hd);
+
+    // 본문
+    const bd = document.createElement('div');
+    bd.className = 'vac-block-bd';
+
+    // 방학식 날짜
+    const row1 = document.createElement('div');
+    row1.className = 'form-row';
+    row1.innerHTML = '<label>방학식 날짜</label>';
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.value = v.vacStart || '';
+    dateInput.onchange = function(){ updateVacDate(v.id,'vacStart',this.value); };
+    const hint1 = document.createElement('div');
+    hint1.className = 'form-hint';
+    hint1.textContent = '방학식 당일은 학기중 근무일';
+    row1.appendChild(dateInput);
+    row1.appendChild(hint1);
+    bd.appendChild(row1);
+
+    // 개학일 (고정 or 입력)
+    if(v.fixedEnd){
+      const fixedHint = document.createElement('div');
+      fixedHint.className = 'vac-fixed-hint';
+      fixedHint.textContent = '개학일: 3월 1일 (고정)';
+      bd.appendChild(fixedHint);
+    } else {
+      const row2 = document.createElement('div');
+      row2.className = 'form-row';
+      row2.innerHTML = '<label>개학일</label>';
+      const dateInput2 = document.createElement('input');
+      dateInput2.type = 'date';
+      dateInput2.value = v.vacEnd || '';
+      dateInput2.onchange = function(){ updateVacDate(v.id,'vacEnd',this.value); };
+      const hint2 = document.createElement('div');
+      hint2.className = 'form-hint';
+      hint2.textContent = '개학일 당일은 학기중 근무일';
+      row2.appendChild(dateInput2);
+      row2.appendChild(hint2);
+      bd.appendChild(row2);
+    }
+
+    div.appendChild(bd);
     wrap.appendChild(div);
   });
 }
