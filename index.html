@@ -229,10 +229,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   box-shadow:0 0 0 3px rgba(37,99,168,0.12);
 }
 .btn-add-full{width:100%;padding:9px;}
-.training-range-sep{
-  font-size:1rem;font-weight:700;color:var(--text2);
-  flex-shrink:0;align-self:center;padding:0 2px;
-}
+.training-range-sep{font-size:1rem;font-weight:700;color:var(--text2);flex-shrink:0;align-self:center;padding:0 2px;}
 .training-input-row input[type="date"]{flex:1;width:auto;}
 
 /* 방학 블록 동적 */
@@ -403,8 +400,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 .s-off.clickable:hover{background:#f0fdf4;border-color:#bbf7d0 !important;color:#166534;}
 .s-holiday{background:var(--red-lt);color:var(--red);border-color:#fca5a5 !important;}  /* 공휴일: 빨강 */
 .s-training{background:var(--green-xl);color:var(--green-dk);border-color:#86efac !important;}  /* 연수: 초록 계열 통일 */
-.s-paid-wknd{background:#f0fdf4;color:var(--green-dk);border-color:#86efac !important;cursor:help;}
-.s-paid-wknd:hover{filter:brightness(0.95);}  /* 토·일 유급: 초록 계열 */
+.s-paid-wknd{background:#f0fdf4;color:var(--green-dk);border-color:#86efac !important;cursor:help;}  /* 토·일 유급: 초록 계열 */
 
 /* 일요일/토요일 날짜 색 */
 .day-sunday .day-num{color:var(--red);}
@@ -1056,10 +1052,13 @@ async function loadHolidays() {
       })
     );
     results.flat().forEach(({ date, name }) => { HOLIDAYS[date] = name; });
-    // 방학중 기간에 속하지 않는 공휴일 제거 (학기중 달이 포함된 경우 방어)
+    // 방학중 기간(방학식 다음날~개학일 전날)에 속하지 않는 공휴일 명시적 제거
+    const vacPeriods0 = state.vacations
+      .filter(v => v.vacStart && v.vacEnd)
+      .map(v => ({ s: addDays(parseDate(v.vacStart), 1), e: addDays(parseDate(v.vacEnd), -1) }));
     Object.keys(HOLIDAYS).forEach(ds => {
       const dt = parseDate(ds);
-      if (!inBreak(dt)) delete HOLIDAYS[ds];
+      if (!vacPeriods0.some(({s,e}) => dt >= s && dt <= e)) delete HOLIDAYS[ds];
     });
     holidayLoadStatus = 'done';
     showHolidayStatus('done');
@@ -1305,24 +1304,16 @@ function addTraining(){
   const l    = document.getElementById('trainingLabel').value.trim() || '연수';
   if(!from){ alert('시작일을 선택하세요.'); return; }
   if(to < from){ alert('종료일이 시작일보다 앞입니다.'); return; }
-
-  // 범위 내 평일(월~금) + 공휴일 제외하여 추가
-  let added = 0;
-  let cur = parseDate(from);
-  const end = parseDate(to);
-  while(cur <= end){
-    const ds = dateStr(cur);
-    const dow = cur.getDay();
-    // 주말 제외, 공휴일 제외, 중복 제외
-    if(dow !== 0 && dow !== 6 && !HOLIDAYS[ds] && !state.trainingDays.find(t=>t.date===ds)){
-      state.trainingDays.push({date:ds, label:l});
-      added++;
+  let added=0, cur=parseDate(from), end=parseDate(to);
+  while(cur<=end){
+    const ds=dateStr(cur), dow=cur.getDay();
+    if(dow!==0&&dow!==6&&!HOLIDAYS[ds]&&!state.trainingDays.find(t=>t.date===ds)){
+      state.trainingDays.push({date:ds,label:l}); added++;
     }
-    cur = addDays(cur, 1);
+    cur=addDays(cur,1);
   }
-  if(added === 0){ alert('추가할 수 있는 날짜가 없습니다.
+  if(added===0){ alert('추가할 수 있는 날짜가 없습니다.
 (주말·공휴일·중복 제외)'); return; }
-
   document.getElementById('trainingDateFrom').value='';
   document.getElementById('trainingDateTo').value='';
   document.getElementById('trainingLabel').value='';
@@ -1517,13 +1508,12 @@ function refreshPaidWeekends(){
 }
 
 // ============================================================
-// 토·일 유급 계산 — Map 반환: { 날짜문자열 → 사유문자열 }
+// 토·일 유급 계산
 // ============================================================
 function calcPaidWeekends(){
   const paid=new Map(); // ds → 사유
   const weekStarts=new Set();
 
-  // 모든 방학 기간 내 + 방학식 주 수집
   state.vacations.forEach(v=>{
     const s=parseDate(v.vacStart), e=parseDate(v.vacEnd);
     if(!s||!e) return;
@@ -1543,7 +1533,6 @@ function calcPaidWeekends(){
     const sat=week[5], sun=week[6];
     const sunDs=dateStr(sun), satDs=dateStr(sat);
 
-    // 해당 주 근무일 집계
     let brkWork=0, totalWork=0, hasVacStart=false;
     const brkWorkDates=[], vacStartName=[];
     week.slice(0,5).forEach(dt=>{
@@ -1553,7 +1542,7 @@ function calcPaidWeekends(){
       const vacV=state.vacations.find(v=>ds===v.vacStart);
       if(vacV){
         hasVacStart=true; totalWork++;
-        vacStartName.push(`${vacV.name}(${fmtShort(ds)})`);
+        vacStartName.push(vacV.name+'('+fmtShort(ds)+')');
       } else if(!isBrk){
         totalWork++;
       } else if(isBrk&&!isHol){
@@ -1562,7 +1551,6 @@ function calcPaidWeekends(){
       }
     });
 
-    // 다음 주 방학중 근무
     let nextBrkWork=0; const nextBrkDates=[];
     for(let i=0;i<5;i++){
       const dt=addDays(mon,7+i); const ds=dateStr(dt);
@@ -1576,18 +1564,15 @@ function calcPaidWeekends(){
     const sunInRange=inBreak(sun);
     const satInRange=inBreak(sat);
 
-    // [원칙] 방학중 근무 2일 이상 → 일요일 유급
     if(brkWork>=2 && sunInRange){
-      paid.set(sunDs, `[원칙] 방학중 근무 ${brkWork}일(${brkWorkDates.join(', ')}) → 일요일 유급`);
+      paid.set(sunDs,'[원칙] 방학중 근무 '+brkWork+'일('+brkWorkDates.join(', ')+') → 일요일 유급');
     }
-    // 방학중 근무 2일 이상 + 다음 주 1일 이상 → 토요일 유급
     if(brkWork>=2 && nextBrkWork>=1 && satInRange && !HOLIDAYS[satDs]){
-      paid.set(satDs, `[원칙] 방학중 근무 ${brkWork}일(${brkWorkDates.join(', ')}) + 다음주 근무 ${nextBrkWork}일(${nextBrkDates.join(', ')}) → 토요일 유급`);
+      paid.set(satDs,'[원칙] 방학중 근무 '+brkWork+'일('+brkWorkDates.join(', ')+') + 다음주 '+nextBrkWork+'일('+nextBrkDates.join(', ')+') → 토요일 유급');
     }
-    // [예외] 방학식 포함 주, 전체 근무 2일 이상 → 일요일 유급
     if(hasVacStart && totalWork>=2 && sunInRange){
       const existing=paid.get(sunDs)||'';
-      const reason=`[예외] ${vacStartName.join('')} 포함 주 근무 ${totalWork}일 → 일요일 유급`;
+      const reason='[예외] '+vacStartName.join('')+' 포함 주 근무 '+totalWork+'일 → 일요일 유급';
       paid.set(sunDs, existing ? existing+' / '+reason : reason);
     }
   });
@@ -1627,12 +1612,15 @@ function calcSchoolDays(){
 function updateResult(){
   const schoolDays=calcSchoolDays();
 
-  // 방학중 공휴일 (일요일 제외)
+  // 방학중 공휴일 (일요일 제외, 방학기간 내 명시적 필터)
+  const vacPeriods=state.vacations
+    .filter(v=>v.vacStart&&v.vacEnd)
+    .map(v=>({s:addDays(parseDate(v.vacStart),1), e:addDays(parseDate(v.vacEnd),-1)}));
   const breakHols=Object.entries(HOLIDAYS)
     .filter(([ds])=>{
       const dt=parseDate(ds);
       if(dt.getDay()===0) return false;
-      return inBreak(dt);
+      return vacPeriods.some(({s,e})=>dt>=s&&dt<=e);
     })
     .map(([ds,name])=>({date:ds,name}));
 
@@ -1690,15 +1678,14 @@ function updateResult(){
       cell.innerHTML=`<div class="day-num">${dayNum}</div>`;
     }
   });
-  // 2) 새로 계산된 유급 주말 표시 (툴팁 포함)
+  // 2) 새로 계산된 유급 주말 표시
   paidArr.forEach(ds=>{
     const cell=document.querySelector(`[data-date="${ds}"]`);
     if(cell){
       const dow=parseDate(ds).getDay();
-      const reason=paidMap.get(ds)||'유급';
       cell.className='cal-day s-paid-wknd'+(dow===0?' day-sunday':' day-saturday');
       cell.innerHTML=`<div class="day-num">${parseInt(ds.slice(8))}</div><div class="day-badge">유급</div>`;
-      cell.title=reason;
+      cell.title=paidMap.get(ds)||'유급';
       cell.onclick=null;
     }
   });
@@ -1778,7 +1765,7 @@ function openPreview(){
     .map(([ds,name])=>({date:ds,name}));
   const trainingInBreak=state.trainingDays.filter(t=>{ const dt=parseDate(t.date); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); });
   const workDays=[...state.selectedWorkDays].filter(ds=>{ const dt=parseDate(ds); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); }).sort();
-  const paidArr=[...calcPaidWeekends()].sort();
+  const paidArr=[...calcPaidWeekends().keys()].sort();
   const total=schoolDays+breakHols.length+trainingInBreak.length+workDays.length+paidArr.length;
   const diff=state.targetDays-total;
 
