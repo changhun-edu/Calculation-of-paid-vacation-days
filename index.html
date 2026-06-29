@@ -210,6 +210,25 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   font-family:var(--font);font-weight:700;
 }
 .btn-add:hover{background:var(--navy);}
+.training-input-wrap{display:flex;flex-direction:column;gap:6px;}
+.training-input-row{display:flex;gap:6px;}
+.training-input-row input[type="date"]{
+  flex:0 0 auto;width:145px;
+  border:1.5px solid var(--gray-bd);border-radius:7px;
+  padding:8px 9px;font-size:0.88rem;font-family:var(--font);
+  color:var(--text);background:#fff;
+}
+.training-input-row input[type="text"]{
+  flex:1;min-width:0;
+  border:1.5px solid var(--gray-bd);border-radius:7px;
+  padding:8px 9px;font-size:0.88rem;font-family:var(--font);
+  color:var(--text);background:#fff;
+}
+.training-input-row input:focus{
+  outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,168,0.12);
+}
+.btn-add-full{width:100%;padding:9px;}
 
 /* 방학 블록 동적 */
 .btn-add-vac{
@@ -711,10 +730,12 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
           <button class="qtag" onclick="setTrainingLabel('법정연수')">법정연수</button>
           <button class="qtag" onclick="setTrainingLabel('조리실무연수')">조리실무연수</button>
         </div>
-        <div class="add-training-row">
-          <input type="date" id="trainingDate" style="flex:1.2;">
-          <input type="text" id="trainingLabel" placeholder="연수명 직접입력" style="flex:1;">
-          <button class="btn-add" onclick="addTraining()">추가</button>
+        <div class="training-input-wrap">
+          <div class="training-input-row">
+            <input type="date" id="trainingDate">
+            <input type="text" id="trainingLabel" placeholder="연수명 직접입력">
+          </div>
+          <button class="btn-add btn-add-full" onclick="addTraining()">＋ 추가</button>
         </div>
         <div class="training-list" id="trainingList"></div>
       </div>
@@ -1278,12 +1299,12 @@ function addTraining(){
   document.getElementById('trainingLabel').value='';
   document.querySelectorAll('.qtag').forEach(b=>b.classList.remove('active'));
   renderTrainingList();
-  rebuildCalendars();
+  rebuildCalendarsOnly();
 }
 function removeTraining(i){
   state.trainingDays.splice(i,1);
   renderTrainingList();
-  rebuildCalendars();
+  rebuildCalendarsOnly();
 }
 function renderTrainingList(){
   document.getElementById('trainingList').innerHTML =
@@ -1306,7 +1327,10 @@ function rebuildCalendars(){
     loadHolidays();
     return;
   }
+  rebuildCalendarsOnly();
+}
 
+function rebuildCalendarsOnly(){
   const wrap = document.getElementById('calendarsWrap');
   wrap.innerHTML = '';
   const months = getDisplayMonths();
@@ -1393,26 +1417,32 @@ function buildMonthCal(year, month){
     let badge='';
 
     if(isHoliday){
+      // 공휴일: 학기중/방학중 불문하고 빨강 표시
       cell.classList.add('s-holiday');
       badge=HOLIDAYS[ds];
     } else if(isEdge){
+      // 방학식·개학일
       cell.classList.add('s-vac-edge');
       badge=getVacEdgeLabel(ds);
     } else if(!isBreak){
+      // 학기중
       cell.classList.add('s-school');
     } else if(dow===0||dow===6){
-      // 주말은 나중에 유급 여부 결정
+      // 방학중 주말: 기본 s-off, 유급 여부는 updateResult에서 덮어씀
       cell.classList.add('s-off');
     } else if(isTraining){
+      // 방학중 연수일
       cell.classList.add('s-training');
       badge=state.trainingDays.find(t=>t.date===ds)?.label||'연수';
     } else if(isSelected){
+      // 방학중 선택 근무일
       cell.classList.add('s-work');
       badge='✓근무';
-      cell.addEventListener('click',()=>toggleWork(ds));
+      cell.onclick=()=>toggleWork(ds);
     } else {
+      // 방학중 비근무일 (클릭 가능)
       cell.classList.add('s-off','clickable');
-      cell.onclick = ()=>toggleWork(ds);
+      cell.onclick=()=>toggleWork(ds);
     }
 
     if(badge){
@@ -1453,39 +1483,8 @@ function toggleWork(ds){
 }
 
 function refreshPaidWeekends(){
-  // 기존 s-paid-wknd 셀 → 원래 상태로 복원
-  document.querySelectorAll('.s-paid-wknd').forEach(cell => {
-    const ds = cell.dataset.date;
-    if(!ds) return;
-    const dow = parseDate(ds).getDay();
-    const dowCls = dow===0?' day-sunday':dow===6?' day-saturday':'';
-    const dayNum = parseInt(ds.slice(8));
-    if(HOLIDAYS[ds]){
-      // 공휴일이면 s-holiday로 복원
-      cell.className = 'cal-day s-holiday' + dowCls;
-      cell.innerHTML = `<div class="day-num">${dayNum}</div><div class="day-badge">${HOLIDAYS[ds]}</div>`;
-    } else if(state.selectedWorkDays.has(ds)){
-      // 선택 근무일이면 s-work로 복원
-      cell.className = 'cal-day s-work' + dowCls;
-      cell.innerHTML = `<div class="day-num">${dayNum}</div><div class="day-badge">✓근무</div>`;
-      cell.onclick = ()=>toggleWork(ds);
-    } else {
-      // 일반 비근무일
-      cell.className = 'cal-day s-off' + dowCls;
-      cell.innerHTML = `<div class="day-num">${dayNum}</div>`;
-    }
-  });
-  // 새로 계산된 유급 주말 반영
-  const paidSet = calcPaidWeekends();
-  paidSet.forEach(ds => {
-    const cell = document.querySelector(`[data-date="${ds}"]`);
-    if(cell){
-      const dow = parseDate(ds).getDay();
-      cell.className = 'cal-day s-paid-wknd' + (dow===0?' day-sunday':' day-saturday');
-      cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div><div class="day-badge">유급</div>`;
-      cell.onclick = null;
-    }
-  });
+  // updateResult에서 유급 셀 초기화+재표시를 모두 처리하므로 위임
+  updateResult();
 }
 
 // ============================================================
@@ -1545,9 +1544,9 @@ function calcPaidWeekends(){
       }
     }
 
-    // 방학기간에 포함되는지 확인
-    const sunInRange=state.vacations.some(v=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); return s&&e&&sun>=s&&sun<=e; });
-    const satInRange=state.vacations.some(v=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); return s&&e&&sat>=s&&sat<=e; });
+    // 토·일이 방학 중(방학식 다음날~개학일 전날)인 경우만 유급 대상
+    const sunInRange=inBreak(sun);
+    const satInRange=inBreak(sat);
 
     // [원칙] 방학중 근무 2일 이상 → 일요일 유급
     if(brkWork>=2 && sunInRange) paid.add(sunDs);
@@ -1642,12 +1641,29 @@ function updateResult(){
     rem.className='cb-remain over'; rem.textContent=`▼ ${Math.abs(diff)}일 초과`;
   }
 
-  // 달력 토·일 유급 셀 업데이트
+  // 달력 토·일 유급 셀 업데이트 (전체 초기화 후 재표시)
+  // 1) 기존 s-paid-wknd 셀 모두 s-off로 초기화
+  document.querySelectorAll('.s-paid-wknd').forEach(cell=>{
+    const ds=cell.dataset.date; if(!ds) return;
+    const dow=parseDate(ds).getDay();
+    const dowCls=dow===0?' day-sunday':' day-saturday';
+    const dayNum=parseInt(ds.slice(8));
+    if(HOLIDAYS[ds]){
+      cell.className='cal-day s-holiday'+dowCls;
+      cell.innerHTML=`<div class="day-num">${dayNum}</div><div class="day-badge">${HOLIDAYS[ds]}</div>`;
+    } else {
+      cell.className='cal-day s-off'+dowCls;
+      cell.innerHTML=`<div class="day-num">${dayNum}</div>`;
+    }
+  });
+  // 2) 새로 계산된 유급 주말 표시
   paidArr.forEach(ds=>{
     const cell=document.querySelector(`[data-date="${ds}"]`);
     if(cell){
-      cell.className='cal-day s-paid-wknd'+(parseDate(ds).getDay()===0?' day-sunday':' day-saturday');
+      const dow=parseDate(ds).getDay();
+      cell.className='cal-day s-paid-wknd'+(dow===0?' day-sunday':' day-saturday');
       cell.innerHTML=`<div class="day-num">${parseInt(ds.slice(8))}</div><div class="day-badge">유급</div>`;
+      cell.onclick=null;
     }
   });
 
