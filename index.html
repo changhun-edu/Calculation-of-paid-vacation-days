@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>방학중 비근무 직종 연간 근무 일수 시뮬레이터</title>
+<style>
+/* ===== 변수 ===== */
+:root {
+  --navy: #1a3a5c;
+  --navy2: #244d78;
+  --blue: #2563a8;
+  --blue-lt: #e8f0fb;
+  --blue-xl: #f4f8ff;
+  --green-dk: #15803d;
+  --green: #16a34a;
+  --green-lt: #dcfce7;
+  --green-xl: #f0fdf4;
+  --red: #dc2626;
+  --red-lt: #fff0f0;
+  --amber: #b45309;
+  --amber-lt: #fffbeb;
+  --gray-dk: #374151;
+  --gray: #6b7280;
+  --gray-lt: #f3f4f6;
+  --gray-bd: #d1d5db;
+  --white: #ffffff;
+  --text: #1f2937;
+  --text2: #4b5563;
+  --radius: 10px;
+  --shadow: 0 2px 10px rgba(0,0,0,0.09);
+  --shadow2: 0 4px 18px rgba(0,0,0,0.13);
+  --font: 'Noto Sans KR','Apple SD Gothic Neo','맑은 고딕',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:17px;}
+body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100vh;}
+
+/* ===== 헤더 ===== */
+.app-header{
+  background:var(--navy);
+  color:#fff;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 2px 10px rgba(0,0,0,0.3);
+}
+.header-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 1.2rem 6px;
+}
+.app-title{
+  display:flex;flex-direction:column;gap:1px;
+}
+.title-main{font-size:1.05rem;font-weight:700;color:#fff;line-height:1.3;letter-spacing:-0.3px;}
+.title-sub{font-size:0.78rem;color:#93c5fd;letter-spacing:0.2px;}
+.tab-nav{display:flex;gap:5px;}
+.tab-btn{
+  background:transparent;
+  border:2px solid #334e6b;
+  color:#93c5fd;
+  padding:7px 18px;
+  border-radius:7px;
+  cursor:pointer;
+  font-size:0.95rem;
+  font-weight:700;
+  font-family:var(--font);
+  transition:all 0.15s;
+  white-space:nowrap;
+}
+.tab-btn.active{background:var(--blue);border-color:#60a5fa;color:#fff;}
+.tab-btn:hover:not(.active){background:rgba(255,255,255,0.08);}
+
+/* ===== 상단 고정 카운터 바 ===== */
+.counter-bar{
+  background:var(--navy2);
+  border-top:1px solid #2d5a8a;
+  padding:7px 1.2rem;
+  display:flex;
+  align-items:center;
+  gap:0;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.counter-bar::-webkit-scrollbar{display:none;}
+.cb-item{
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 14px;
+  border-right:1px solid #2d5a8a;
+  min-width:72px;
+  flex-shrink:0;
+}
+.cb-item:last-child{border-right:none;}
+.cb-label{font-size:0.72rem;color:#93c5fd;white-space:nowrap;}
+.cb-val{font-size:1.05rem;font-weight:700;color:#fff;}
+.cb-total{
+  margin-left:auto;
+  display:flex;align-items:center;gap:12px;
+  flex-shrink:0;
+  padding-left:14px;
+}
+.cb-sum-box{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.08);
+  border-radius:8px;
+  padding:4px 14px;
+  border:1.5px solid transparent;
+  transition:all 0.3s;
+}
+.cb-sum-box.ok{background:rgba(22,163,74,0.25);border-color:#4ade80;}
+.cb-sum-box.low{background:rgba(220,38,38,0.2);border-color:#f87171;}
+.cb-sum-box.over{background:rgba(217,119,6,0.2);border-color:#fbbf24;}
+.cb-sum-label{font-size:0.8rem;color:#cbd5e1;}
+.cb-sum-val{font-size:1.2rem;font-weight:700;color:#fff;}
+.cb-remain{font-size:0.85rem;font-weight:700;padding:4px 10px;border-radius:6px;}
+.cb-remain.ok{color:#4ade80;}
+.cb-remain.low{color:#f87171;}
+.cb-remain.over{color:#fbbf24;}
+
+/* ===== 탭 페이지 ===== */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ===== 시뮬레이터 레이아웃 ===== */
+.sim-layout{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  gap:1rem;
+  padding:1rem;
+  max-width:1400px;
+  margin:0 auto;
+  align-items:start;
+}
+
+/* ===== 왼쪽 패널 ===== */
+.left-panel{display:flex;flex-direction:column;gap:0.75rem;}
+
+/* ===== 카드 공통 ===== */
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.card-hd{
+  background:var(--navy);color:#fff;
+  padding:9px 14px;
+  font-size:0.92rem;font-weight:700;
+  display:flex;align-items:center;gap:7px;
+  cursor:pointer;user-select:none;
+}
+.card-hd .hd-arrow{margin-left:auto;font-size:0.8rem;transition:transform 0.2s;}
+.card-hd.open .hd-arrow{transform:rotate(180deg);}
+.card-bd{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.card-bd.collapsed{display:none;}
+
+/* ===== 폼 ===== */
+.form-row{display:flex;flex-direction:column;gap:4px;}
+.form-row label{font-size:0.88rem;color:var(--text2);font-weight:700;}
+.form-row input,.form-row select{
+  border:1.5px solid var(--gray-bd);border-radius:7px;
+  padding:9px 11px;font-size:0.97rem;font-family:var(--font);
+  color:var(--text);background:#fff;width:100%;
+  transition:border-color 0.15s;
+}
+.form-row input:focus,.form-row select:focus{
+  outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,168,0.12);
+}
+.form-hint{font-size:0.8rem;color:var(--gray);margin-top:2px;}
+
+/* 방학 블록 */
+.vac-block{display:flex;flex-direction:column;gap:8px;}
+.vac-block-title{
+  font-size:0.9rem;font-weight:700;color:var(--navy);
+  padding:5px 9px;background:var(--blue-lt);
+  border-radius:6px;border-left:3px solid var(--blue);
+}
+.vac-divider{border:none;border-top:1px dashed var(--gray-bd);margin:2px 0;}
+
+/* 연수 목록 */
+.add-training-row{display:flex;gap:6px;}
+.add-training-row input{
+  border:1.5px solid var(--gray-bd);border-radius:7px;
+  padding:8px 9px;font-size:0.88rem;font-family:var(--font);
+}
+.btn-add{
+  background:var(--blue);color:#fff;border:none;
+  border-radius:7px;padding:8px 12px;
+  font-size:0.88rem;cursor:pointer;white-space:nowrap;
+  font-family:var(--font);font-weight:700;
+}
+.btn-add:hover{background:var(--navy);}
+.training-list{display:flex;flex-direction:column;gap:5px;margin-top:2px;}
+.training-item{
+  display:flex;align-items:center;gap:6px;
+  background:var(--gray-lt);border-radius:6px;padding:6px 9px;font-size:0.88rem;
+}
+.training-item .t-label{flex:1;font-weight:600;}
+.training-item .t-date{color:var(--blue);font-weight:700;}
+.training-item .btn-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 2px;}
+
+/* 액션 버튼 */
+.action-btns{display:flex;gap:8px;}
+.btn-print{
+  flex:1;background:var(--green);color:#fff;border:none;
+  border-radius:8px;padding:12px;font-size:1rem;font-weight:700;
+  cursor:pointer;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:background 0.15s;
+}
+.btn-print:hover{background:var(--green-dk);}
+.btn-preview{
+  background:var(--blue-lt);color:var(--navy);border:1.5px solid var(--blue);
+  border-radius:8px;padding:12px 13px;font-size:0.9rem;
+  cursor:pointer;font-family:var(--font);font-weight:700;
+  transition:background 0.15s;white-space:nowrap;
+}
+.btn-preview:hover{background:#d1e3f8;}
+.btn-reset{
+  background:var(--gray-lt);color:var(--text2);
+  border:1.5px solid var(--gray-bd);border-radius:8px;
+  padding:12px 13px;font-size:0.9rem;cursor:pointer;
+  font-family:var(--font);font-weight:700;
+  transition:background 0.15s;
+}
+.btn-reset:hover{background:#e5e7eb;}
+
+/* ===== 오른쪽 패널 ===== */
+.right-panel{display:flex;flex-direction:column;gap:1rem;}
+
+/* ===== 달력 ===== */
+.calendars-wrap{display:flex;flex-direction:column;gap:1rem;}
+.cal-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.cal-hd{
+  background:var(--blue);color:#fff;
+  padding:11px 16px;font-size:1.05rem;font-weight:700;text-align:center;
+}
+.cal-body{padding:10px 12px 12px;}
+.cal-weekdays{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  margin-bottom:6px;
+}
+.cal-wd{
+  text-align:center;font-size:0.82rem;font-weight:700;
+  padding:4px 0;color:var(--text2);
+}
+.cal-wd:first-child{color:var(--red);}
+.cal-wd:last-child{color:var(--blue);}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+
+/* 달력 셀 */
+.cal-day{
+  min-height:48px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:7px;
+  cursor:default;
+  position:relative;
+  border:2px solid transparent;
+  user-select:none;
+  transition:transform 0.1s,box-shadow 0.1s;
+  padding:3px 2px;
+}
+.cal-day.empty{visibility:hidden;}
+
+/* 상태별 색상 — 3원칙으로 단순화 */
+.s-school{background:#f1f5f9;color:#64748b;}  /* 학기중: 조용한 회색 */
+.s-vac-edge{background:#e0f2fe;color:#0369a1;border-color:#7dd3fc !important;}  /* 방학식/개학 */
+.s-off{background:#fff;color:#9ca3af;border-color:#e5e7eb;}  /* 방학중 비근무: 흰색 */
+.s-work{background:var(--green-lt);color:var(--green-dk);border-color:#86efac !important;cursor:pointer;}  /* 선택 근무 */
+.s-work:hover{transform:scale(1.06);box-shadow:0 2px 8px rgba(22,163,74,0.25);}
+.s-off.clickable{cursor:pointer;}
+.s-off.clickable:hover{background:#f0fdf4;border-color:#bbf7d0 !important;color:#166534;}
+.s-holiday{background:var(--red-lt);color:var(--red);border-color:#fca5a5 !important;}  /* 공휴일: 빨강 */
+.s-training{background:var(--green-xl);color:var(--green-dk);border-color:#86efac !important;}  /* 연수: 초록 계열 통일 */
+.s-paid-wknd{background:#f0fdf4;color:var(--green-dk);border-color:#86efac !important;}  /* 토·일 유급: 초록 계열 */
+
+/* 일요일/토요일 날짜 색 */
+.day-sunday .day-num{color:var(--red);}
+.day-saturday .day-num{color:var(--blue);}
+.s-school.day-sunday .day-num{color:#f87171;}
+.s-school.day-saturday .day-num{color:#93c5fd;}
+
+.day-num{font-size:0.97rem;font-weight:700;line-height:1;}
+.day-badge{
+  font-size:0.68rem;line-height:1.1;margin-top:2px;
+  white-space:nowrap;text-align:center;font-weight:600;
+}
+
+/* 범례 */
+.cal-legend{
+  background:var(--gray-lt);border-top:1px solid var(--gray-bd);
+  padding:9px 14px;
+  display:flex;flex-wrap:wrap;gap:7px 16px;
+}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:0.82rem;color:var(--text2);}
+.legend-dot{
+  width:15px;height:15px;border-radius:4px;
+  border:1.5px solid transparent;flex-shrink:0;
+}
+
+/* ===== 결과표 ===== */
+.result-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.result-hd{
+  background:var(--navy);color:#fff;
+  padding:11px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.result-hd h3{font-size:1rem;font-weight:700;}
+.result-body{padding:16px;}
+.result-info-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:8px;margin-bottom:14px;
+}
+.ri-item{
+  background:var(--blue-xl);border-radius:7px;padding:8px 12px;
+}
+.ri-label{font-size:0.78rem;color:var(--text2);}
+.ri-val{font-size:1rem;font-weight:700;color:var(--navy);}
+.result-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.result-sec h4{
+  font-size:0.92rem;font-weight:700;color:var(--navy);
+  border-bottom:2px solid var(--blue-lt);padding-bottom:5px;margin-bottom:8px;
+}
+.res-table{width:100%;border-collapse:collapse;font-size:0.88rem;}
+.res-table th{background:var(--navy);color:#fff;padding:6px 8px;text-align:center;font-size:0.82rem;}
+.res-table td{padding:6px 8px;border-bottom:1px solid var(--gray-bd);}
+.res-table tr:last-child td{border-bottom:none;}
+.res-table .total-row{background:var(--blue-xl);font-weight:700;}
+.date-chip{
+  display:inline-block;border-radius:4px;padding:1px 7px;
+  margin:2px 2px;font-size:0.8rem;font-weight:600;
+}
+.chip-work{background:var(--green-lt);color:var(--green-dk);}
+.chip-holiday{background:var(--red-lt);color:var(--red);}
+.chip-weekend{background:var(--green-xl);color:var(--green-dk);}
+.chip-training{background:var(--green-xl);color:var(--green-dk);}
+.formula-box{
+  background:var(--blue-xl);border:1.5px solid var(--blue-lt);
+  border-radius:8px;padding:12px 16px;
+  font-size:0.92rem;font-weight:600;color:var(--navy);text-align:center;margin-top:10px;
+}
+.formula-box .f-result{color:var(--green-dk);font-size:1.1rem;}
+.rule-text{
+  background:#fff7ed;border-left:3px solid #f97316;
+  border-radius:0 7px 7px 0;padding:8px 12px;
+  font-size:0.85rem;color:#7c2d12;margin-top:10px;line-height:1.65;
+}
+
+/* ===== 인쇄 미리보기 모달 ===== */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.55);z-index:500;
+  align-items:center;justify-content:center;
+  padding:1rem;
+}
+.modal-overlay.open{display:flex;}
+.modal-box{
+  background:#fff;border-radius:12px;
+  max-width:700px;width:100%;max-height:90vh;
+  overflow-y:auto;box-shadow:var(--shadow2);
+}
+.modal-hd{
+  background:var(--navy);color:#fff;padding:12px 18px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-radius:12px 12px 0 0;
+  position:sticky;top:0;
+}
+.modal-hd h3{font-size:1rem;font-weight:700;}
+.btn-modal-close{
+  background:rgba(255,255,255,0.15);border:none;color:#fff;
+  width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-body{padding:20px;}
+.modal-footer{
+  padding:12px 20px;border-top:1px solid var(--gray-bd);
+  display:flex;gap:8px;justify-content:flex-end;
+  position:sticky;bottom:0;background:#fff;border-radius:0 0 12px 12px;
+}
+.btn-do-print{
+  background:var(--green);color:#fff;border:none;
+  border-radius:7px;padding:10px 22px;font-size:0.97rem;
+  font-weight:700;cursor:pointer;font-family:var(--font);
+}
+.btn-cancel{
+  background:var(--gray-lt);color:var(--text2);
+  border:1.5px solid var(--gray-bd);border-radius:7px;
+  padding:10px 18px;font-size:0.97rem;font-weight:700;
+  cursor:pointer;font-family:var(--font);
+}
+
+/* 인쇄 미리보기 내부 스타일 */
+.print-preview{font-size:0.88rem;line-height:1.6;}
+.print-title{
+  text-align:center;font-size:1.1rem;font-weight:700;
+  margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--navy);
+}
+.print-info{
+  display:flex;gap:20px;margin-bottom:10px;font-size:0.88rem;
+}
+.print-table{width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:10px;}
+.print-table th{background:var(--navy);color:#fff;padding:6px 8px;text-align:center;}
+.print-table td{padding:5px 8px;border:1px solid #ccc;text-align:center;}
+.print-table .td-left{text-align:left;}
+.print-formula{
+  background:var(--blue-xl);border:1px solid var(--blue-lt);
+  border-radius:6px;padding:8px 12px;font-size:0.88rem;
+  font-weight:600;color:var(--navy);text-align:center;margin-top:8px;
+}
+.print-rule{
+  font-size:0.8rem;color:#555;margin-top:8px;
+  border-top:1px solid #ddd;padding-top:6px;
+}
+
+/* ===== 규정 안내 탭 ===== */
+.guide-layout{max-width:960px;margin:0 auto;padding:1.2rem 1rem;display:flex;flex-direction:column;gap:1rem;}
+.guide-sec{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.guide-sec-hd{
+  background:var(--navy);color:#fff;padding:12px 18px;
+  font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px;
+  cursor:pointer;user-select:none;
+}
+.guide-sec-hd .arrow{margin-left:auto;font-size:0.85rem;transition:transform 0.22s;}
+.guide-sec-hd.open .arrow{transform:rotate(180deg);}
+.guide-sec-body{padding:16px 18px;display:none;flex-direction:column;gap:14px;}
+.guide-sec-body.open{display:flex;}
+.guide-sub h4{font-size:0.95rem;font-weight:700;color:var(--blue);margin-bottom:7px;}
+.guide-sub p,.guide-sub li{font-size:0.92rem;line-height:1.75;color:var(--text2);}
+.guide-sub ul{padding-left:1.2rem;}
+.g-table{width:100%;border-collapse:collapse;font-size:0.88rem;margin-top:7px;}
+.g-table th{background:var(--blue);color:#fff;padding:7px 10px;text-align:center;}
+.g-table td{padding:7px 10px;border:1px solid var(--gray-bd);}
+.g-table tr:nth-child(even) td{background:var(--blue-xl);}
+.case-box{border:1.5px solid var(--blue-lt);border-radius:8px;overflow:hidden;margin-top:6px;}
+.case-box-hd{background:var(--blue-lt);padding:7px 12px;font-size:0.88rem;font-weight:700;color:var(--navy);}
+.case-box-bd{padding:10px 12px;}
+.mini-cal{display:flex;flex-wrap:wrap;gap:4px;}
+.mini-day{
+  width:54px;padding:5px 3px;border-radius:5px;text-align:center;
+  font-size:0.78rem;font-weight:600;border:1.5px solid transparent;
+}
+.mini-day .md-d{font-size:0.82rem;font-weight:700;}
+.mini-day .md-l{font-size:0.7rem;margin-top:1px;}
+.md-school{background:var(--blue-lt);color:var(--navy);}
+.md-work{background:var(--green-lt);color:var(--green-dk);border-color:#86efac;}
+.md-off{background:var(--gray-lt);color:#9ca3af;}
+.md-paid{background:var(--green-xl);color:var(--green-dk);border-color:#86efac;}
+.md-unpaid{background:var(--gray-lt);color:#d1d5db;}
+.highlight-box{
+  background:#fffbeb;border-left:4px solid #f59e0b;
+  border-radius:0 8px 8px 0;padding:10px 14px;
+  font-size:0.9rem;color:#78350f;line-height:1.75;
+}
+
+/* ===== 푸터 ===== */
+.app-footer{
+  text-align:center;padding:14px;
+  font-size:0.78rem;color:#9ca3af;
+  border-top:1px solid var(--gray-bd);margin-top:0.5rem;
+}
+
+/* ===== 반응형 ===== */
+@media(max-width:960px){
+  .sim-layout{grid-template-columns:1fr;padding:0.75rem;}
+  .result-cols{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  html{font-size:15px;}
+  .title-main{font-size:0.88rem;}
+  .tab-btn{padding:6px 11px;font-size:0.85rem;}
+  .cb-item{padding:0 9px;min-width:58px;}
+  .cb-label{font-size:0.68rem;}
+  .cb-val{font-size:0.95rem;}
+  .result-cols{grid-template-columns:1fr;}
+  .result-info-grid{grid-template-columns:1fr 1fr;}
+}
+
+/* ===== 인쇄 ===== */
+@media print{
+  body{background:#fff;}
+  .app-header,.left-panel,.cal-legend,.action-btns,.app-footer,
+  .calendars-wrap,.tab-nav,.counter-bar{display:none !important;}
+  .sim-layout{display:block;padding:0;}
+  .right-panel{gap:0.5rem;}
+  .result-card{box-shadow:none;border:1px solid #ccc;}
+  .result-body{padding:12px;}
+  .page{display:block !important;}
+  #guide-page{display:none !important;}
+  .modal-overlay{display:none !important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 헤더 ===== -->
+<header class="app-header">
+  <div class="header-top">
+    <div class="app-title">
+      <div class="title-main">🗓️ 방학중 비근무 직종 연간 근무 일수 시뮬레이터</div>
+      <div class="title-sub">2026학년도 광주광역시교육청 교육공무직원</div>
+    </div>
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="showTab('sim',this)">📋 시뮬레이터</button>
+      <button class="tab-btn" onclick="showTab('guide',this)">📖 규정 안내</button>
+    </nav>
+  </div>
+  <!-- 상단 고정 카운터 바 -->
+  <div class="counter-bar" id="counterBar">
+    <div class="cb-item"><div class="cb-label">① 학기중</div><div class="cb-val" id="cb-school">-</div></div>
+    <div class="cb-item"><div class="cb-label">② 공휴일</div><div class="cb-val" id="cb-holiday">-</div></div>
+    <div class="cb-item"><div class="cb-label">③④ 연수</div><div class="cb-val" id="cb-training">-</div></div>
+    <div class="cb-item"><div class="cb-label">⑤ 출근</div><div class="cb-val" id="cb-work">-</div></div>
+    <div class="cb-item"><div class="cb-label">⑥⑦ 토·일유급</div><div class="cb-val" id="cb-weekend">-</div></div>
+    <div class="cb-total">
+      <div class="cb-sum-box low" id="cb-sum-box">
+        <div class="cb-sum-label">합계 / 목표 <span id="cb-target">323</span>일</div>
+        <div class="cb-sum-val" id="cb-total">0일</div>
+      </div>
+      <div class="cb-remain low" id="cb-remain">계산 중</div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 시뮬레이터 탭 ===== -->
+<div id="sim-page" class="page active">
+<div class="sim-layout">
+
+  <!-- 왼쪽 패널 -->
+  <div class="left-panel">
+
+    <!-- 기본 정보 -->
+    <div class="card">
+      <div class="card-hd open" onclick="toggleCard(this)">
+        <span>👤</span> 기본 정보 <span class="hd-arrow">▲</span>
+      </div>
+      <div class="card-bd">
+        <div class="form-row">
+          <label>성명</label>
+          <input type="text" id="empName" placeholder="홍길동" oninput="updateResult()">
+        </div>
+        <div class="form-row">
+          <label>직종 / 연간 유급일수</label>
+          <select id="jobType" onchange="updateJobType()">
+            <option value="323">조리사·조리실무사 등 (323일)</option>
+            <option value="333">2식 급식학교 조리실무사 (333일)</option>
+            <option value="365">상시근무 (365일)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 방학 일정 -->
+    <div class="card">
+      <div class="card-hd open" onclick="toggleCard(this)">
+        <span>📅</span> 방학 일정 입력 <span class="hd-arrow">▲</span>
+      </div>
+      <div class="card-bd" style="gap:14px;">
+        <div class="vac-block">
+          <div class="vac-block-title">☀️ 여름방학</div>
+          <div class="form-row">
+            <label>방학식 날짜</label>
+            <input type="date" id="sumVacStart" value="2026-07-24" onchange="rebuildCalendars()">
+            <div class="form-hint">방학식 당일은 학기중 근무일</div>
+          </div>
+          <div class="form-row">
+            <label>개학일</label>
+            <input type="date" id="sumVacEnd" value="2026-08-19" onchange="rebuildCalendars()">
+            <div class="form-hint">개학일 당일은 학기중 근무일</div>
+          </div>
+        </div>
+        <hr class="vac-divider">
+        <div class="vac-block">
+          <div class="vac-block-title">❄️ 겨울방학</div>
+          <div class="form-row">
+            <label>방학식 날짜</label>
+            <input type="date" id="winVacStart" value="2027-01-07" onchange="rebuildCalendars()">
+            <div class="form-hint">방학식 당일은 학기중 근무일</div>
+          </div>
+          <div class="form-row">
+            <label>개학일</label>
+            <input type="date" id="winVacEnd" value="2027-03-01" onchange="rebuildCalendars()">
+            <div class="form-hint">개학일 당일은 학기중 근무일</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 연수·교육일 -->
+    <div class="card">
+      <div class="card-hd open" onclick="toggleCard(this)">
+        <span>📚</span> 연수·교육일 입력 <span class="hd-arrow">▲</span>
+      </div>
+      <div class="card-bd">
+        <div class="form-hint" style="font-size:0.86rem;color:var(--text2);">법정연수·직무연수·산업안전보건교육일을 입력하세요.</div>
+        <div class="add-training-row">
+          <input type="date" id="trainingDate" style="flex:1.2;">
+          <input type="text" id="trainingLabel" placeholder="연수명" style="flex:1;">
+          <button class="btn-add" onclick="addTraining()">추가</button>
+        </div>
+        <div class="training-list" id="trainingList"></div>
+      </div>
+    </div>
+
+    <!-- 인쇄용 학교명 (출력용 한정) -->
+    <div class="card">
+      <div class="card-hd open" onclick="toggleCard(this)">
+        <span>🖨️</span> 출력 정보 <span class="hd-arrow">▲</span>
+      </div>
+      <div class="card-bd">
+        <div class="form-row">
+          <label>학교명 (출력용)</label>
+          <input type="text" id="schoolName" placeholder="○○초등학교" oninput="updateResult()">
+        </div>
+        <div class="form-hint">계획서 인쇄 시에만 사용됩니다.</div>
+      </div>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="action-btns">
+      <button class="btn-print" onclick="openPreview()">🖨️ 인쇄 미리보기</button>
+      <button class="btn-reset" onclick="resetAll()">🔄 초기화</button>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- 오른쪽 패널 -->
+  <div class="right-panel">
+
+    <!-- 달력 -->
+    <div class="calendars-wrap" id="calendarsWrap"></div>
+
+    <!-- 범례 -->
+    <div style="background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);">
+      <div class="cal-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#f1f5f9;border-color:#cbd5e1;"></div>학기중 근무일</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e0f2fe;border-color:#7dd3fc;"></div>방학식·개학일</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fff;border-color:#e5e7eb;"></div>방학중 비근무 (클릭 가능)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#dcfce7;border-color:#86efac;"></div>선택 근무일 (클릭 해제)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fff0f0;border-color:#fca5a5;"></div>공휴일 (자동 유급)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f0fdf4;border-color:#86efac;"></div>토·일 자동 유급 / 연수일</div>
+      </div>
+    </div>
+
+    <!-- 결과표 -->
+    <div class="result-card">
+      <div class="result-hd">
+        <h3>📋 연간 근무계획 요약표</h3>
+      </div>
+      <div class="result-body" id="resultBody">
+        <div style="text-align:center;color:var(--gray);padding:2rem;font-size:0.95rem;">
+          방학 일정을 입력하고 달력에서 출근일을 선택하면<br>계획서가 자동으로 생성됩니다.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /right-panel -->
+</div>
+<footer class="app-footer">만든이 2026 최창훈</footer>
+</div><!-- /sim-page -->
+
+<!-- ===== 규정 안내 탭 ===== -->
+<div id="guide-page" class="page">
+<div class="guide-layout">
+
+  <div class="guide-sec">
+    <div class="guide-sec-hd open" onclick="toggleGuide(this)">
+      <span>📌</span> 1. 연간 유급일수 제도 개요 <span class="arrow">▲</span>
+    </div>
+    <div class="guide-sec-body open">
+      <div class="guide-sub">
+        <h4>📋 제도 근거</h4>
+        <ul>
+          <li>광주광역시교육청 × 전국학교비정규직연대회의 <strong>2024 단체협약</strong> (2026.2.2.)</li>
+          <li>부칙 제9조(방학 중 비근무 직종의 근로계약 및 근무유형)</li>
+          <li>시행일: <strong>2026년 3월 1일</strong></li>
+        </ul>
+      </div>
+      <div class="guide-sub">
+        <h4>📊 직종별 연간 유급일수</h4>
+        <table class="g-table">
+          <tr><th>구분</th><th>직종</th><th>연간 유급일수</th></tr>
+          <tr><td>원칙</td><td>조리사, 조리실무사, 과학실무사, 특수교육실무사, 통학실무사, 돌봄교실강사</td><td style="text-align:center;font-weight:700;color:var(--blue)">323일</td></tr>
+          <tr><td>예외 (2식)</td><td>2식 급식학교 조리실무사</td><td style="text-align:center;font-weight:700;">333일</td></tr>
+          <tr><td>상시근무</td><td>방학중 급식·방과후 실시 기관, 3식 급식학교 조리실무사</td><td style="text-align:center;font-weight:700;">365일</td></tr>
+        </table>
+      </div>
+      <div class="guide-sub">
+        <h4>📅 유급일수 구성 항목</h4>
+        <table class="g-table">
+          <tr><th>항목</th><th>내용</th></tr>
+          <tr><td>① 학기중</td><td>1·2학기 중 달력상 일수 전체 (토·일·공휴일 포함)</td></tr>
+          <tr><td>② 방학중 공휴일</td><td>관공서 공휴일(일요일 제외): 광복절, 대체공휴일, 설연휴 등</td></tr>
+          <tr><td>③ 법정·직무연수일</td><td>실제 연수 참석 및 이수 여부 확인</td></tr>
+          <tr><td>④ 산업안전보건교육일</td><td>사업부서 지침에 따름</td></tr>
+          <tr><td>⑤ 종업식·신학기 대비 근무일</td><td>학사일정 반영한 실질 근무일</td></tr>
+          <tr><td>⑥⑦ 토·일요일 유급일</td><td>조건 충족 시 자동 산정</td></tr>
+        </table>
+        <div class="highlight-box" style="margin-top:10px;">
+          ① ~ ⑤ 항목을 <strong>우선 확보</strong>한 후 ⑥⑦ 토·일 유급일을 계산합니다.<br>
+          여름방학에 <strong>1/3</strong>, 겨울방학에 <strong>2/3</strong> 비율로 배분 가능합니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-sec">
+    <div class="guide-sec-hd" onclick="toggleGuide(this)">
+      <span>📐</span> 2. 방학중 토·일요일 유급 처리 원칙 <span class="arrow">▼</span>
+    </div>
+    <div class="guide-sec-body">
+      <div class="highlight-box">
+        방학기간 해당 주에 <strong>방학 중 근무를 2일 이상</strong>하면 일요일을 유급으로 하고,<br>
+        다음 주에 <strong>방학 중 근무를 1일 이상</strong> 하는 경우, 해당 주 <strong>토·일요일</strong>은 유급으로 한다.
+      </div>
+      <div class="guide-sub">
+        <h4>🔵 [원칙] 방학 중 근무일수만 확인</h4>
+        <div class="case-box">
+          <div class="case-box-hd">사례 1 — 방학 중 근무 2일 이상 → 일요일만 유급</div>
+          <div class="case-box-bd">
+            <div class="mini-cal">
+              <div class="mini-day md-school"><div class="md-d">7.27(월)</div><div class="md-l">학기중</div></div>
+              <div class="mini-day md-school"><div class="md-d">7.28(화)</div><div class="md-l">방학식</div></div>
+              <div class="mini-day md-work"><div class="md-d">7.29(수)</div><div class="md-l">★근무</div></div>
+              <div class="mini-day md-work"><div class="md-d">7.30(목)</div><div class="md-l">★근무</div></div>
+              <div class="mini-day md-off"><div class="md-d">7.31(금)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-unpaid"><div class="md-d">8.1(토)</div><div class="md-l">× 무급</div></div>
+              <div class="mini-day md-paid"><div class="md-d">8.2(일)</div><div class="md-l">✅ 유급</div></div>
+            </div>
+            <p style="margin-top:8px;font-size:0.85rem;color:var(--text2);">해당 주 방학 중 근무 2일(수·목) → <strong>일요일만</strong> 유급. 다음 주 근무 없으므로 토요일은 무급.</p>
+          </div>
+        </div>
+        <div class="case-box" style="margin-top:10px;">
+          <div class="case-box-hd">사례 2 — 방학 중 근무 2일 이상 + 다음 주 1일 이상 → 토·일 모두 유급</div>
+          <div class="case-box-bd">
+            <div class="mini-cal">
+              <div class="mini-day md-school"><div class="md-d">7.27(월)</div><div class="md-l">학기중</div></div>
+              <div class="mini-day md-school"><div class="md-d">7.28(화)</div><div class="md-l">방학식</div></div>
+              <div class="mini-day md-work"><div class="md-d">7.29(수)</div><div class="md-l">★근무</div></div>
+              <div class="mini-day md-work"><div class="md-d">7.30(목)</div><div class="md-l">★근무</div></div>
+              <div class="mini-day md-off"><div class="md-d">7.31(금)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-paid"><div class="md-d">8.1(토)</div><div class="md-l">✅ 유급</div></div>
+              <div class="mini-day md-paid"><div class="md-d">8.2(일)</div><div class="md-l">✅ 유급</div></div>
+            </div>
+            <div class="mini-cal" style="margin-top:5px;">
+              <div class="mini-day md-off"><div class="md-d">8.3(월)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-off"><div class="md-d">8.4(화)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-off"><div class="md-d">8.5(수)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-work"><div class="md-d">8.6(목)</div><div class="md-l">★근무</div></div>
+              <div class="mini-day md-off"><div class="md-d">8.7(금)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-unpaid"><div class="md-d">8.8(토)</div><div class="md-l">× 무급</div></div>
+              <div class="mini-day md-unpaid"><div class="md-d">8.9(일)</div><div class="md-l">× 무급</div></div>
+            </div>
+            <p style="margin-top:8px;font-size:0.85rem;color:var(--text2);">1주 방학 중 근무 2일 이상 AND 2주 1일 이상 → 1주 <strong>토·일 모두</strong> 유급.</p>
+          </div>
+        </div>
+      </div>
+      <div class="guide-sub">
+        <h4>🟠 [예외] 방학식 포함 주 근무일 2일 이상 → 일요일 유급</h4>
+        <p style="font-size:0.88rem;color:var(--text2);margin-bottom:8px;">* 학기중 근무일 포함하여 계산</p>
+        <div class="case-box">
+          <div class="case-box-bd">
+            <div class="mini-cal">
+              <div class="mini-day md-school"><div class="md-d">7.27(월)</div><div class="md-l">학기중</div></div>
+              <div class="mini-day md-school"><div class="md-d">7.28(화)</div><div class="md-l">방학식</div></div>
+              <div class="mini-day md-off"><div class="md-d">7.29(수)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-off"><div class="md-d">7.30(목)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-off"><div class="md-d">7.31(금)</div><div class="md-l">비근무</div></div>
+              <div class="mini-day md-unpaid"><div class="md-d">8.1(토)</div><div class="md-l">× 무급</div></div>
+              <div class="mini-day md-paid"><div class="md-d">8.2(일)</div><div class="md-l">✅ 유급</div></div>
+            </div>
+            <p style="margin-top:8px;font-size:0.85rem;color:var(--text2);">월(학기중)+화(방학식) = 총 2일 → 일요일 유급 (예외 적용)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-sec">
+    <div class="guide-sec-hd" onclick="toggleGuide(this)">
+      <span>📋</span> 3. 방학중 복무 기준 <span class="arrow">▼</span>
+    </div>
+    <div class="guide-sec-body">
+      <div class="guide-sub">
+        <h4>✅ 방학 중 근무일 (출근의무 있음)</h4>
+        <ul>
+          <li>학기중 근무일과 동일하게 복무 관리 적용</li>
+          <li>지각·조퇴·외출, 출장 사용 가능</li>
+          <li>학습휴가: 학기중 우선 사용, 잔여일 있을 경우 방학 중 근무일에 사용 가능</li>
+          <li>경조사휴가: 연간 유급일수 범위 내 사용 (총량 불변)</li>
+          <li>병가: 누적 6일 초과 시 진단서 필요 (학기중·방학중 동일 적용)</li>
+        </ul>
+      </div>
+      <div class="guide-sub">
+        <h4>❌ 방학 중 비근무일 (출근의무 없음)</h4>
+        <ul>
+          <li>복무 관리 대상일에 해당하지 않음</li>
+          <li>지각·조퇴·외출·휴가 등 복무 제도 적용 불가</li>
+        </ul>
+      </div>
+      <div class="guide-sub">
+        <h4>⚠️ 유의사항</h4>
+        <ul>
+          <li>매 학년도 시작일인 <strong>3월 1일부터</strong> 일수 계산</li>
+          <li>전보 시 전출기관에서 연간 유급일수 공문 시행 필요 [서식 6]</li>
+          <li>9월 1일자 퇴직예정 근로자: 여름방학 중 유급일수 <strong>최소 12일</strong> 보장</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /guide-page -->
+
+<!-- ===== 인쇄 미리보기 모달 ===== -->
+<div class="modal-overlay" id="previewModal">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <h3>🖨️ 인쇄 미리보기</h3>
+      <button class="btn-modal-close" onclick="closePreview()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="print-preview" id="printContent"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closePreview()">닫기</button>
+      <button class="btn-do-print" onclick="doPrint()">🖨️ 인쇄하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 상태
+// ============================================================
+const state = {
+  targetDays: 323,
+  sumVacStart: '2026-07-24',
+  sumVacEnd:   '2026-08-19',
+  winVacStart: '2027-01-07',
+  winVacEnd:   '2027-03-01',
+  trainingDays: [],
+  selectedWorkDays: new Set(),
+};
+
+// 2026~2027 방학 관련 공휴일
+const HOLIDAYS = {
+  '2026-08-15': '광복절',
+  '2026-08-17': '대체공휴일',
+  '2027-01-01': '신정',
+  '2027-01-28': '설연휴',
+  '2027-01-29': '설연휴',
+  '2027-01-30': '설날',
+  '2027-02-01': '대체공휴일',
+  '2027-03-01': '삼일절',
+};
+
+// ============================================================
+// 유틸
+// ============================================================
+function parseDate(s){ if(!s)return null; const[y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function dateStr(dt){ return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
+function addDays(dt,n){ const r=new Date(dt); r.setDate(r.getDate()+n); return r; }
+function fmtShort(ds){ const dt=parseDate(ds); return `${dt.getMonth()+1}.${dt.getDate()}`; }
+
+// ============================================================
+// 탭 & 아코디언
+// ============================================================
+function showTab(tab, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(tab+'-page').classList.add('active');
+  btn.classList.add('active');
+  if(tab==='sim') rebuildCalendars();
+}
+function toggleCard(hd){
+  hd.classList.toggle('open');
+  const bd = hd.nextElementSibling;
+  bd.classList.toggle('collapsed');
+  hd.querySelector('.hd-arrow').textContent = hd.classList.contains('open') ? '▲' : '▼';
+}
+function toggleGuide(hd){
+  hd.classList.toggle('open');
+  hd.nextElementSibling.classList.toggle('open');
+  hd.querySelector('.arrow').textContent = hd.classList.contains('open') ? '▲' : '▼';
+}
+
+// ============================================================
+// 직종 변경
+// ============================================================
+function updateJobType(){
+  state.targetDays = parseInt(document.getElementById('jobType').value);
+  document.getElementById('cb-target').textContent = state.targetDays;
+  updateResult();
+}
+
+// ============================================================
+// 연수일
+// ============================================================
+function addTraining(){
+  const d = document.getElementById('trainingDate').value;
+  const l = document.getElementById('trainingLabel').value.trim() || '연수';
+  if(!d){ alert('날짜를 선택하세요.'); return; }
+  if(state.trainingDays.find(t=>t.date===d)){ alert('이미 추가된 날짜입니다.'); return; }
+  state.trainingDays.push({date:d,label:l});
+  renderTrainingList();
+  rebuildCalendars();
+}
+function removeTraining(i){
+  state.trainingDays.splice(i,1);
+  renderTrainingList();
+  rebuildCalendars();
+}
+function renderTrainingList(){
+  document.getElementById('trainingList').innerHTML =
+    state.trainingDays.map((t,i)=>
+      `<div class="training-item">
+        <span class="t-label">${t.label}</span>
+        <span class="t-date">${t.date.slice(5).replace('-','/')}</span>
+        <button class="btn-del" onclick="removeTraining(${i})">✕</button>
+      </div>`
+    ).join('');
+}
+
+// ============================================================
+// 달력 빌드
+// ============================================================
+function rebuildCalendars(){
+  state.sumVacStart = document.getElementById('sumVacStart').value;
+  state.sumVacEnd   = document.getElementById('sumVacEnd').value;
+  state.winVacStart = document.getElementById('winVacStart').value;
+  state.winVacEnd   = document.getElementById('winVacEnd').value;
+
+  const wrap = document.getElementById('calendarsWrap');
+  wrap.innerHTML = '';
+  [{y:2026,m:7},{y:2026,m:8},{y:2027,m:1},{y:2027,m:2}]
+    .forEach(({y,m}) => wrap.appendChild(buildMonthCal(y,m)));
+
+  updateResult();
+}
+
+function inBreak(dt){
+  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
+  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
+  return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve);
+}
+function isVacEdge(ds){
+  return ds===state.sumVacStart||ds===state.sumVacEnd||
+         ds===state.winVacStart||ds===state.winVacEnd;
+}
+
+function buildMonthCal(year, month){
+  const MNAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const card = document.createElement('div'); card.className='cal-card';
+  const hd = document.createElement('div'); hd.className='cal-hd';
+  hd.textContent = `${year}년 ${MNAMES[month-1]}`;
+  card.appendChild(hd);
+
+  const body = document.createElement('div'); body.className='cal-body';
+  const wds = document.createElement('div'); wds.className='cal-weekdays';
+  ['일','월','화','수','목','금','토'].forEach(w=>{
+    const e=document.createElement('div'); e.className='cal-wd'; e.textContent=w; wds.appendChild(e);
+  });
+  body.appendChild(wds);
+
+  const days = document.createElement('div'); days.className='cal-days';
+  const firstDow = new Date(year,month-1,1).getDay();
+  const daysInMonth = new Date(year,month,0).getDate();
+
+  for(let i=0;i<firstDow;i++){
+    const e=document.createElement('div'); e.className='cal-day empty'; days.appendChild(e);
+  }
+
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dt=parseDate(ds);
+    const dow=dt.getDay();
+    const cell=document.createElement('div'); cell.className='cal-day'; cell.dataset.date=ds;
+
+    if(dow===0) cell.classList.add('day-sunday');
+    if(dow===6) cell.classList.add('day-saturday');
+
+    const numEl=document.createElement('div'); numEl.className='day-num'; numEl.textContent=d;
+    cell.appendChild(numEl);
+
+    const isHoliday = !!HOLIDAYS[ds];
+    const isTraining = state.trainingDays.some(t=>t.date===ds);
+    const isEdge = isVacEdge(ds);
+    const isBreak = inBreak(dt);
+    const isSelected = state.selectedWorkDays.has(ds);
+
+    let badge='';
+
+    if(isHoliday){
+      cell.classList.add('s-holiday');
+      badge=HOLIDAYS[ds];
+    } else if(isEdge){
+      cell.classList.add('s-vac-edge');
+      if(ds===state.sumVacStart||ds===state.winVacStart) badge='방학식';
+      else badge='개학';
+    } else if(!isBreak){
+      cell.classList.add('s-school');
+    } else if(dow===0||dow===6){
+      // 주말은 나중에 유급 여부 결정
+      cell.classList.add('s-off');
+    } else if(isTraining){
+      cell.classList.add('s-training');
+      badge=state.trainingDays.find(t=>t.date===ds)?.label||'연수';
+    } else if(isSelected){
+      cell.classList.add('s-work');
+      badge='✓근무';
+      cell.addEventListener('click',()=>toggleWork(ds));
+    } else {
+      cell.classList.add('s-off','clickable');
+      cell.addEventListener('click',()=>toggleWork(ds));
+    }
+
+    if(badge){
+      const b=document.createElement('div'); b.className='day-badge'; b.textContent=badge; cell.appendChild(b);
+    }
+    days.appendChild(cell);
+  }
+  body.appendChild(days);
+  card.appendChild(body);
+  return card;
+}
+
+function toggleWork(ds){
+  if(state.selectedWorkDays.has(ds)) state.selectedWorkDays.delete(ds);
+  else state.selectedWorkDays.add(ds);
+  rebuildCalendars();
+}
+
+// ============================================================
+// 토·일 유급 계산
+// ============================================================
+function calcPaidWeekends(){
+  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
+  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
+  const paid=new Set();
+
+  // 방학 기간 내 모든 주 수집
+  const weekStarts=new Set();
+  [[svs,sve],[wvs,wve]].forEach(([s,e])=>{
+    if(!s||!e) return;
+    let cur=addDays(s,1);
+    while(cur<e){ const dow=cur.getDay(); weekStarts.add(dateStr(addDays(cur,-(dow===0?6:dow-1)))); cur=addDays(cur,1); }
+  });
+  // 방학식 주 추가
+  [state.sumVacStart,state.winVacStart].forEach(ds=>{
+    if(!ds) return;
+    const dt=parseDate(ds); const dow=dt.getDay();
+    weekStarts.add(dateStr(addDays(dt,-(dow===0?6:dow-1))));
+  });
+
+  weekStarts.forEach(monStr=>{
+    const mon=parseDate(monStr);
+    const week=Array.from({length:7},(_,i)=>addDays(mon,i));
+    const sat=week[5], sun=week[6];
+
+    // 해당 주 방학중 근무일수
+    let brkWork=0, totalWork=0, hasVacStart=false;
+    week.slice(0,5).forEach(dt=>{
+      const ds=dateStr(dt);
+      const isHol=!!HOLIDAYS[ds];
+      const isEdge=isVacEdge(ds);
+      const isBrk=inBreak(dt);
+      if(ds===state.sumVacStart||ds===state.winVacStart){ hasVacStart=true; totalWork++; }
+      else if(!isBrk&&!isHol){ totalWork++; }
+      if(isBrk&&!isHol){
+        const isWrk=state.selectedWorkDays.has(ds)||state.trainingDays.some(t=>t.date===ds);
+        if(isWrk){ brkWork++; totalWork++; }
+      }
+    });
+
+    // 다음 주 방학중 근무
+    let nextBrkWork=0;
+    for(let i=0;i<5;i++){
+      const dt=addDays(mon,7+i); const ds=dateStr(dt);
+      if(inBreak(dt)&&!HOLIDAYS[ds]){
+        if(state.selectedWorkDays.has(ds)||state.trainingDays.some(t=>t.date===ds)) nextBrkWork++;
+      }
+    }
+
+    const sunDs=dateStr(sun), satDs=dateStr(sat);
+    const sunInRange=(svs&&sve&&sun>=svs&&sun<=sve)||(wvs&&wve&&sun>=wvs&&sun<=wve);
+    const satInRange=(svs&&sve&&sat>=svs&&sat<=sve)||(wvs&&wve&&sat>=wvs&&sat<=wve);
+
+    // [원칙] 방학중 근무 2일 이상 → 일요일 유급
+    if(brkWork>=2 && sunInRange) paid.add(sunDs);
+    // 다음 주 1일 이상 → 토요일도 유급
+    if(brkWork>=2 && nextBrkWork>=1 && satInRange) paid.add(satDs);
+    // [예외] 방학식 주 전체 근무 2일 이상 → 일요일 유급
+    if(hasVacStart && totalWork>=2 && sunInRange) paid.add(sunDs);
+  });
+
+  return paid;
+}
+
+// ============================================================
+// 학기중 일수 계산
+// ============================================================
+function calcSchoolDays(){
+  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
+  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
+  const start=new Date(2026,2,1), end=new Date(2027,1,28);
+  let n=0, cur=new Date(start);
+  while(cur<=end){
+    const inS=svs&&sve&&cur>svs&&cur<sve;
+    const inW=wvs&&wve&&cur>wvs&&cur<wve;
+    if(!inS&&!inW) n++;
+    cur=addDays(cur,1);
+  }
+  return n;
+}
+
+// ============================================================
+// 결과 업데이트
+// ============================================================
+function updateResult(){
+  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
+  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
+
+  const schoolDays=calcSchoolDays();
+
+  // 방학중 공휴일
+  const breakHols=Object.entries(HOLIDAYS)
+    .filter(([ds])=>{ const dt=parseDate(ds); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); })
+    .map(([ds,name])=>({date:ds,name}));
+
+  // 방학중 연수
+  const trainingInBreak=state.trainingDays.filter(t=>{
+    const dt=parseDate(t.date);
+    return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve);
+  });
+
+  // 선택 근무일
+  const workDays=[...state.selectedWorkDays].filter(ds=>{
+    const dt=parseDate(ds);
+    return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve);
+  }).sort();
+
+  // 토·일 유급
+  const paidSet=calcPaidWeekends();
+  const paidArr=[...paidSet].sort();
+
+  // 합계
+  const total=schoolDays+breakHols.length+trainingInBreak.length+workDays.length+paidArr.length;
+  const diff=state.targetDays-total;
+
+  // 카운터 바 업데이트
+  document.getElementById('cb-school').textContent=schoolDays+'일';
+  document.getElementById('cb-holiday').textContent=breakHols.length+'일';
+  document.getElementById('cb-training').textContent=trainingInBreak.length+'일';
+  document.getElementById('cb-work').textContent=workDays.length+'일';
+  document.getElementById('cb-weekend').textContent=paidArr.length+'일';
+  document.getElementById('cb-total').textContent=total+'일';
+
+  const sumBox=document.getElementById('cb-sum-box');
+  const rem=document.getElementById('cb-remain');
+  if(diff===0){
+    sumBox.className='cb-sum-box ok'; rem.className='cb-remain ok'; rem.textContent='✅ 목표 달성!';
+  } else if(diff>0){
+    sumBox.className='cb-sum-box low'; rem.className='cb-remain low'; rem.textContent=`▲ ${diff}일 부족`;
+  } else {
+    sumBox.className='cb-sum-box over'; rem.className='cb-remain over'; rem.textContent=`▼ ${Math.abs(diff)}일 초과`;
+  }
+
+  // 달력 토·일 유급 셀 업데이트
+  paidArr.forEach(ds=>{
+    const cell=document.querySelector(`[data-date="${ds}"]`);
+    if(cell){
+      cell.className='cal-day s-paid-wknd'+(parseDate(ds).getDay()===0?' day-sunday':' day-saturday');
+      cell.innerHTML=`<div class="day-num">${parseInt(ds.slice(8))}</div><div class="day-badge">유급</div>`;
+    }
+  });
+
+  // 결과표 렌더
+  renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,total,diff,svs,sve,wvs,wve});
+}
+
+// ============================================================
+// 결과표 렌더
+// ============================================================
+function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,total,diff,svs,sve,wvs,wve}){
+  const name=document.getElementById('empName').value||'____';
+  const jobSel=document.getElementById('jobType');
+  const job=jobSel.options[jobSel.selectedIndex].text.split('(')[0].trim();
+
+  const sumWork=workDays.filter(ds=>svs&&sve&&parseDate(ds)>svs&&parseDate(ds)<sve);
+  const winWork=workDays.filter(ds=>wvs&&wve&&parseDate(ds)>wvs&&parseDate(ds)<wve);
+  const sumHols=breakHols.filter(h=>svs&&sve&&parseDate(h.date)>svs&&parseDate(h.date)<sve);
+  const winHols=breakHols.filter(h=>wvs&&wve&&parseDate(h.date)>wvs&&parseDate(h.date)<wve);
+  const sumTrn=trainingInBreak.filter(t=>svs&&sve&&parseDate(t.date)>svs&&parseDate(t.date)<sve);
+  const winTrn=trainingInBreak.filter(t=>wvs&&wve&&parseDate(t.date)>wvs&&parseDate(t.date)<wve);
+  const sumWk=paidArr.filter(ds=>svs&&sve&&parseDate(ds)>=svs&&parseDate(ds)<=sve);
+  const winWk=paidArr.filter(ds=>wvs&&wve&&parseDate(ds)>=wvs&&parseDate(ds)<=wve);
+
+  const chip=(ds,cls)=>`<span class="date-chip ${cls}">${fmtShort(ds)}</span>`;
+  const chips=(arr,cls)=>arr.map(ds=>chip(ds,cls)).join('')||'<span style="color:#aaa">-</span>';
+  const holChips=(arr)=>arr.map(h=>`<span class="date-chip chip-holiday">${fmtShort(h.date)}</span>`).join('')||'<span style="color:#aaa">-</span>';
+  const trnChips=(arr)=>arr.map(t=>`<span class="date-chip chip-training">${fmtShort(t.date)}&nbsp;${t.label}</span>`).join('')||'<span style="color:#aaa">-</span>';
+
+  const secTable=(work,hols,trn,wk)=>`
+    <table class="res-table">
+      <tr><th>구분</th><th>일수</th><th>날짜</th></tr>
+      <tr><td>출근일</td><td>${work.length}일</td><td>${chips(work,'chip-work')}</td></tr>
+      <tr><td>공휴일</td><td>${hols.length}일</td><td>${holChips(hols)}</td></tr>
+      <tr><td>연수·교육</td><td>${trn.length}일</td><td>${trnChips(trn)}</td></tr>
+      <tr><td>토·일 유급</td><td>${wk.length}일</td><td>${chips(wk,'chip-weekend')}</td></tr>
+      <tr class="total-row"><td colspan="2">소계</td><td>${work.length+hols.length+trn.length+wk.length}일</td></tr>
+    </table>`;
+
+  const diffText=diff===0?'&nbsp;✅':diff>0?`&nbsp;(▲${diff}일 부족)`:`&nbsp;(▼${Math.abs(diff)}일 초과)`;
+
+  document.getElementById('resultBody').innerHTML=`
+    <div class="result-info-grid">
+      <div class="ri-item"><div class="ri-label">성명</div><div class="ri-val">${name}</div></div>
+      <div class="ri-item"><div class="ri-label">직종</div><div class="ri-val">${job}</div></div>
+      <div class="ri-item"><div class="ri-label">연간 유급일수</div><div class="ri-val">${state.targetDays}일</div></div>
+      <div class="ri-item"><div class="ri-label">여름방학</div><div class="ri-val">${state.sumVacStart?fmtShort(state.sumVacStart)+'~'+fmtShort(addDays(parseDate(state.sumVacEnd),-1)):'-'}</div></div>
+      <div class="ri-item"><div class="ri-label">겨울방학</div><div class="ri-val">${state.winVacStart?fmtShort(state.winVacStart)+'~'+fmtShort(addDays(parseDate(state.winVacEnd),-1)):'-'}</div></div>
+    </div>
+    <div class="result-cols">
+      <div class="result-sec"><h4>☀️ 여름방학</h4>${secTable(sumWork,sumHols,sumTrn,sumWk)}</div>
+      <div class="result-sec"><h4>❄️ 겨울방학</h4>${secTable(winWork,winHols,winTrn,winWk)}</div>
+    </div>
+    <div class="formula-box">
+      학기중 ${schoolDays}일 + 공휴일 ${breakHols.length}일 + 연수 ${trainingInBreak.length}일 + 출근 ${workDays.length}일 + 토·일유급 ${paidArr.length}일
+      = <span class="f-result">${total}일</span> / 목표 ${state.targetDays}일${diffText}
+    </div>
+    <div class="rule-text">
+      <strong>변경사유:</strong> 방학 중 근무 2일 이상 시 일요일 유급 처리.
+      방학 중 근무 2일 이상 + 다음 주 1일 이상 시 토·일요일 유급 처리.
+      (2026학년도 교육공무직원 복무·급여 업무 지침 준수)
+    </div>`;
+}
+
+// ============================================================
+// 인쇄 미리보기
+// ============================================================
+function openPreview(){
+  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
+  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
+  const schoolDays=calcSchoolDays();
+  const breakHols=Object.entries(HOLIDAYS)
+    .filter(([ds])=>{ const dt=parseDate(ds); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); })
+    .map(([ds,name])=>({date:ds,name}));
+  const trainingInBreak=state.trainingDays.filter(t=>{ const dt=parseDate(t.date); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); });
+  const workDays=[...state.selectedWorkDays].filter(ds=>{ const dt=parseDate(ds); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); }).sort();
+  const paidArr=[...calcPaidWeekends()].sort();
+  const total=schoolDays+breakHols.length+trainingInBreak.length+workDays.length+paidArr.length;
+  const diff=state.targetDays-total;
+
+  const school=document.getElementById('schoolName').value||'　　　　학교';
+  const name=document.getElementById('empName').value||'　　　';
+  const jobSel=document.getElementById('jobType');
+  const job=jobSel.options[jobSel.selectedIndex].text.split('(')[0].trim();
+
+  const sumWork=workDays.filter(ds=>svs&&sve&&parseDate(ds)>svs&&parseDate(ds)<sve);
+  const winWork=workDays.filter(ds=>wvs&&wve&&parseDate(ds)>wvs&&parseDate(ds)<wve);
+  const sumHols=breakHols.filter(h=>svs&&sve&&parseDate(h.date)>svs&&parseDate(h.date)<sve);
+  const winHols=breakHols.filter(h=>wvs&&wve&&parseDate(h.date)>wvs&&parseDate(h.date)<wve);
+  const sumTrn=trainingInBreak.filter(t=>svs&&sve&&parseDate(t.date)>svs&&parseDate(t.date)<sve);
+  const winTrn=trainingInBreak.filter(t=>wvs&&wve&&parseDate(t.date)>wvs&&parseDate(t.date)<wve);
+  const sumWk=paidArr.filter(ds=>svs&&sve&&parseDate(ds)>=svs&&parseDate(ds)<=sve);
+  const winWk=paidArr.filter(ds=>wvs&&wve&&parseDate(ds)>=wvs&&parseDate(ds)<=wve);
+
+  const fmtDates=(arr)=>arr.length?arr.map(ds=>fmtShort(ds)).join(', '):'-';
+  const fmtHols=(arr)=>arr.length?arr.map(h=>`${fmtShort(h.date)}(${h.name})`).join(', '):'-';
+  const fmtTrn=(arr)=>arr.length?arr.map(t=>`${fmtShort(t.date)}(${t.label})`).join(', '):'-';
+
+  document.getElementById('printContent').innerHTML=`
+    <div class="print-title">2026학년도 조리사·조리실무사 방학중 연간 근무 계획</div>
+    <div class="print-info">
+      <span>소속: <strong>${school}</strong></span>
+      <span>성명: <strong>${name}</strong></span>
+      <span>직종: <strong>${job}</strong></span>
+      <span>연간 유급일수: <strong>${state.targetDays}일</strong></span>
+    </div>
+    <table class="print-table">
+      <tr><th>구분</th><th>항목</th><th>일수</th><th>날짜</th></tr>
+      <tr><td rowspan="5">☀️<br>여름<br>방학</td><td>출근일</td><td>${sumWork.length}일</td><td class="td-left">${fmtDates(sumWork)}</td></tr>
+      <tr><td>공휴일</td><td>${sumHols.length}일</td><td class="td-left">${fmtHols(sumHols)}</td></tr>
+      <tr><td>연수·교육일</td><td>${sumTrn.length}일</td><td class="td-left">${fmtTrn(sumTrn)}</td></tr>
+      <tr><td>토·일 유급</td><td>${sumWk.length}일</td><td class="td-left">${fmtDates(sumWk)}</td></tr>
+      <tr style="background:#f0fdf4;font-weight:700;"><td>소계</td><td colspan="2">${sumWork.length+sumHols.length+sumTrn.length+sumWk.length}일</td></tr>
+      <tr><td rowspan="5">❄️<br>겨울<br>방학</td><td>출근일</td><td>${winWork.length}일</td><td class="td-left">${fmtDates(winWork)}</td></tr>
+      <tr><td>공휴일</td><td>${winHols.length}일</td><td class="td-left">${fmtHols(winHols)}</td></tr>
+      <tr><td>연수·교육일</td><td>${winTrn.length}일</td><td class="td-left">${fmtTrn(winTrn)}</td></tr>
+      <tr><td>토·일 유급</td><td>${winWk.length}일</td><td class="td-left">${fmtDates(winWk)}</td></tr>
+      <tr style="background:#f0fdf4;font-weight:700;"><td>소계</td><td colspan="2">${winWork.length+winHols.length+winTrn.length+winWk.length}일</td></tr>
+    </table>
+    <div class="print-formula">
+      학기중 ${schoolDays}일 + 공휴일 ${breakHols.length}일 + 연수 ${trainingInBreak.length}일 + 출근 ${workDays.length}일 + 토·일유급 ${paidArr.length}일
+      = <strong>${total}일</strong> / 목표 ${state.targetDays}일
+      ${diff===0?'✅ 달성':diff>0?`▲ ${diff}일 부족`:`▼ ${Math.abs(diff)}일 초과`}
+    </div>
+    <div class="print-rule">
+      변경사유: 방학 중 근무 2일 이상 → 일요일 유급. 방학 중 근무 2일 이상 + 다음 주 1일 이상 → 토·일요일 유급.
+      (2026학년도 광주광역시교육청 교육공무직원 복무·급여 업무 지침 준수)
+    </div>`;
+
+  document.getElementById('previewModal').classList.add('open');
+}
+function closePreview(){ document.getElementById('previewModal').classList.remove('open'); }
+function doPrint(){ closePreview(); setTimeout(()=>window.print(),100); }
+
+// 모달 외부 클릭 닫기
+document.getElementById('previewModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closePreview(); });
+
+// ============================================================
+// 초기화
+// ============================================================
+function resetAll(){
+  if(!confirm('모든 입력 내용을 초기화하시겠습니까?')) return;
+  document.getElementById('empName').value='';
+  document.getElementById('schoolName').value='';
+  document.getElementById('jobType').value='323';
+  document.getElementById('sumVacStart').value='2026-07-24';
+  document.getElementById('sumVacEnd').value='2026-08-19';
+  document.getElementById('winVacStart').value='2027-01-07';
+  document.getElementById('winVacEnd').value='2027-03-01';
+  state.trainingDays=[];
+  state.selectedWorkDays=new Set();
+  state.targetDays=323;
+  document.getElementById('cb-target').textContent='323';
+  renderTrainingList();
+  rebuildCalendars();
+}
+
+// ============================================================
+// 뒤로가기·새로고침 보호
+// ============================================================
+window.addEventListener('beforeunload',e=>{
+  if(state.selectedWorkDays.size>0||state.trainingDays.length>0){
+    e.preventDefault(); e.returnValue='';
+  }
+});
+history.pushState(null,'',location.href);
+window.addEventListener('popstate',()=>history.pushState(null,'',location.href));
+
+// ============================================================
+// 초기 실행
+// ============================================================
+window.addEventListener('load', rebuildCalendars);
+</script>
+</body>
+</html>
