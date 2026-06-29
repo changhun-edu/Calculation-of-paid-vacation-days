@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>방학중 비근무 직종 연간 근무 일수 시뮬레이터</title>
+<title>방학중 비근무 직종 연간 근무 일수 계산기</title>
 <style>
 /* ===== 변수 ===== */
 :root {
@@ -119,7 +119,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 .page{display:none;}
 .page.active{display:block;}
 
-/* ===== 시뮬레이터 레이아웃 ===== */
+/* ===== 계산기 레이아웃 ===== */
 .sim-layout{
   display:grid;
   grid-template-columns:300px 1fr;
@@ -184,6 +184,29 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   font-family:var(--font);font-weight:700;
 }
 .btn-add:hover{background:var(--navy);}
+
+/* 빠른 연수 태그 */
+.quick-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.qtag{
+  background:var(--blue-lt);color:var(--navy);
+  border:1.5px solid var(--blue);border-radius:20px;
+  padding:5px 12px;font-size:0.85rem;font-weight:700;
+  cursor:pointer;font-family:var(--font);
+  transition:all 0.15s;white-space:nowrap;
+}
+.qtag:hover{background:var(--blue);color:#fff;}
+.qtag.active{background:var(--blue);color:#fff;border-color:var(--navy);}
+
+/* 공휴일 상태 표시 */
+.hs-loading{font-size:0.8rem;color:var(--gray);}
+.hs-ok{font-size:0.8rem;color:var(--green);font-weight:600;}
+.hs-err{font-size:0.8rem;color:var(--red);}
+.hs-retry{
+  background:none;border:1px solid var(--red);color:var(--red);
+  border-radius:4px;padding:1px 7px;font-size:0.78rem;
+  cursor:pointer;font-family:var(--font);margin-left:4px;
+}
+.hs-retry:hover{background:var(--red);color:#fff;}
 .training-list{display:flex;flex-direction:column;gap:5px;margin-top:2px;}
 .training-item{
   display:flex;align-items:center;gap:6px;
@@ -223,7 +246,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 .right-panel{display:flex;flex-direction:column;gap:1rem;}
 
 /* ===== 달력 ===== */
-.calendars-wrap{display:flex;flex-direction:column;gap:1rem;}
+.calendars-wrap{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
 .cal-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
 .cal-hd{
   background:var(--blue);color:#fff;
@@ -458,6 +481,12 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   .sim-layout{grid-template-columns:1fr;padding:0.75rem;}
   .result-cols{grid-template-columns:1fr;}
 }
+@media(max-width:900px){
+  .calendars-wrap{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:600px){
+  .calendars-wrap{grid-template-columns:1fr;}
+}
 @media(max-width:600px){
   html{font-size:15px;}
   .title-main{font-size:0.88rem;}
@@ -490,11 +519,11 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 <header class="app-header">
   <div class="header-top">
     <div class="app-title">
-      <div class="title-main">🗓️ 방학중 비근무 직종 연간 근무 일수 시뮬레이터</div>
+      <div class="title-main">🗓️ 방학중 비근무 직종 연간 근무 일수 계산기</div>
       <div class="title-sub">2026학년도 광주광역시교육청 교육공무직원</div>
     </div>
     <nav class="tab-nav">
-      <button class="tab-btn active" onclick="showTab('sim',this)">📋 시뮬레이터</button>
+      <button class="tab-btn active" onclick="showTab('sim',this)">📋 계산기</button>
       <button class="tab-btn" onclick="showTab('guide',this)">📖 규정 안내</button>
     </nav>
   </div>
@@ -515,7 +544,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   </div>
 </header>
 
-<!-- ===== 시뮬레이터 탭 ===== -->
+<!-- ===== 계산기 탭 ===== -->
 <div id="sim-page" class="page active">
 <div class="sim-layout">
 
@@ -528,10 +557,6 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
         <span>👤</span> 기본 정보 <span class="hd-arrow">▲</span>
       </div>
       <div class="card-bd">
-        <div class="form-row">
-          <label>성명</label>
-          <input type="text" id="empName" placeholder="홍길동" oninput="updateResult()">
-        </div>
         <div class="form-row">
           <label>직종 / 연간 유급일수</label>
           <select id="jobType" onchange="updateJobType()">
@@ -553,12 +578,12 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
           <div class="vac-block-title">☀️ 여름방학</div>
           <div class="form-row">
             <label>방학식 날짜</label>
-            <input type="date" id="sumVacStart" value="2026-07-24" onchange="rebuildCalendars()">
+            <input type="date" id="sumVacStart" value="2026-07-24" onchange="resetHolidayAndRebuild()">
             <div class="form-hint">방학식 당일은 학기중 근무일</div>
           </div>
           <div class="form-row">
             <label>개학일</label>
-            <input type="date" id="sumVacEnd" value="2026-08-19" onchange="rebuildCalendars()">
+            <input type="date" id="sumVacEnd" value="2026-08-19" onchange="resetHolidayAndRebuild()">
             <div class="form-hint">개학일 당일은 학기중 근무일</div>
           </div>
         </div>
@@ -567,15 +592,15 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
           <div class="vac-block-title">❄️ 겨울방학</div>
           <div class="form-row">
             <label>방학식 날짜</label>
-            <input type="date" id="winVacStart" value="2027-01-07" onchange="rebuildCalendars()">
+            <input type="date" id="winVacStart" value="2027-01-07" onchange="resetHolidayAndRebuild()">
             <div class="form-hint">방학식 당일은 학기중 근무일</div>
           </div>
-          <div class="form-row">
-            <label>개학일</label>
-            <input type="date" id="winVacEnd" value="2027-03-01" onchange="rebuildCalendars()">
-            <div class="form-hint">개학일 당일은 학기중 근무일</div>
+          <div class="form-hint" style="background:var(--blue-lt);border-radius:6px;padding:6px 9px;color:var(--navy);font-weight:600;">
+            개학일: 3월 1일 (고정)
           </div>
+          <input type="hidden" id="winVacEnd" value="2027-03-01">
         </div>
+        <div id="holidayStatus" style="display:none;"></div>
       </div>
     </div>
 
@@ -584,28 +609,20 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
       <div class="card-hd open" onclick="toggleCard(this)">
         <span>📚</span> 연수·교육일 입력 <span class="hd-arrow">▲</span>
       </div>
-      <div class="card-bd">
-        <div class="form-hint" style="font-size:0.86rem;color:var(--text2);">법정연수·직무연수·산업안전보건교육일을 입력하세요.</div>
+      <div class="card-bd" style="gap:10px;">
+        <div class="form-hint" style="font-size:0.86rem;color:var(--text2);">자주 쓰는 연수명을 클릭하거나 직접 입력하세요.</div>
+        <div class="quick-tags">
+          <button class="qtag" onclick="setTrainingLabel('안전보건교육')">안전보건교육</button>
+          <button class="qtag" onclick="setTrainingLabel('직무연수')">직무연수</button>
+          <button class="qtag" onclick="setTrainingLabel('법정연수')">법정연수</button>
+          <button class="qtag" onclick="setTrainingLabel('조리실무연수')">조리실무연수</button>
+        </div>
         <div class="add-training-row">
           <input type="date" id="trainingDate" style="flex:1.2;">
-          <input type="text" id="trainingLabel" placeholder="연수명" style="flex:1;">
+          <input type="text" id="trainingLabel" placeholder="연수명 직접입력" style="flex:1;">
           <button class="btn-add" onclick="addTraining()">추가</button>
         </div>
         <div class="training-list" id="trainingList"></div>
-      </div>
-    </div>
-
-    <!-- 인쇄용 학교명 (출력용 한정) -->
-    <div class="card">
-      <div class="card-hd open" onclick="toggleCard(this)">
-        <span>🖨️</span> 출력 정보 <span class="hd-arrow">▲</span>
-      </div>
-      <div class="card-bd">
-        <div class="form-row">
-          <label>학교명 (출력용)</label>
-          <input type="text" id="schoolName" placeholder="○○초등학교" oninput="updateResult()">
-        </div>
-        <div class="form-hint">계획서 인쇄 시에만 사용됩니다.</div>
       </div>
     </div>
 
@@ -836,17 +853,103 @@ const state = {
   selectedWorkDays: new Set(),
 };
 
-// 2026~2027 방학 관련 공휴일
-const HOLIDAYS = {
-  '2026-08-15': '광복절',
-  '2026-08-17': '대체공휴일',
-  '2027-01-01': '신정',
-  '2027-01-28': '설연휴',
-  '2027-01-29': '설연휴',
-  '2027-01-30': '설날',
-  '2027-02-01': '대체공휴일',
-  '2027-03-01': '삼일절',
-};
+// ============================================================
+// 공휴일 — 한국천문연구원 특일정보 API 연동
+// ============================================================
+let HOLIDAYS = {};  // { 'YYYY-MM-DD': '공휴일명' }
+let holidayLoadStatus = 'idle'; // idle | loading | done | error
+
+const API_KEY = '9e644bbc9679873e697c8e70127dc6c6d1073968698887cef1fc34aba8e0a36c';
+
+// 방학 기간에 해당하는 연월 목록 반환
+function getVacMonths() {
+  const months = new Set();
+  const svs = parseDate(state.sumVacStart);
+  const sve = parseDate(state.sumVacEnd);
+  const wvs = parseDate(state.winVacStart);
+  const wve = parseDate(state.winVacEnd);
+  [[svs, sve], [wvs, wve]].forEach(([s, e]) => {
+    if (!s || !e) return;
+    let cur = new Date(s.getFullYear(), s.getMonth(), 1);
+    const last = new Date(e.getFullYear(), e.getMonth(), 1);
+    while (cur <= last) {
+      months.add(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`);
+      cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
+    }
+  });
+  return [...months];
+}
+
+// 단일 연월 공휴일 API 호출
+async function fetchHolidayMonth(year, month) {
+  const mm = String(month).padStart(2, '0');
+  const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo`
+    + `?solYear=${year}&solMonth=${mm}&numOfRows=30&_type=json`
+    + `&ServiceKey=${API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API 오류 ${res.status}`);
+  const json = await res.json();
+  const items = json?.response?.body?.items?.item;
+  if (!items) return [];
+  return (Array.isArray(items) ? items : [items])
+    .filter(it => it.isHoliday === 'Y')
+    .map(it => {
+      const s = String(it.locdate);
+      const ds = `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+      return { date: ds, name: it.dateName };
+    });
+}
+
+// 방학 관련 전체 공휴일 로딩
+function resetHolidayAndRebuild() {
+  // winVacStart 연도 기준으로 winVacEnd(3월 1일) 자동 갱신
+  const wvs = document.getElementById('winVacStart').value;
+  if (wvs) {
+    const year = parseInt(wvs.slice(0,4));
+    document.getElementById('winVacEnd').value = `${year+1}-03-01`;
+  }
+  HOLIDAYS = {};
+  holidayLoadStatus = 'idle';
+  showHolidayStatus('loading');
+  rebuildCalendars();
+}
+
+async function loadHolidays() {
+  if (holidayLoadStatus === 'loading') return;
+  holidayLoadStatus = 'loading';
+  showHolidayStatus('loading');
+  try {
+    HOLIDAYS = {};
+    const months = getVacMonths();
+    const results = await Promise.all(
+      months.map(ym => {
+        const [y, m] = ym.split('-').map(Number);
+        return fetchHolidayMonth(y, m);
+      })
+    );
+    results.flat().forEach(({ date, name }) => { HOLIDAYS[date] = name; });
+    holidayLoadStatus = 'done';
+    showHolidayStatus('done');
+    rebuildCalendars();
+  } catch (e) {
+    holidayLoadStatus = 'error';
+    showHolidayStatus('error', e.message);
+    console.error('공휴일 API 오류:', e);
+  }
+}
+
+function showHolidayStatus(status, msg) {
+  const el = document.getElementById('holidayStatus');
+  if (!el) return;
+  if (status === 'loading') {
+    el.innerHTML = '<span class="hs-loading">⏳ 공휴일 불러오는 중...</span>';
+  } else if (status === 'done') {
+    const cnt = Object.keys(HOLIDAYS).length;
+    el.innerHTML = `<span class="hs-ok">✅ 공휴일 ${cnt}일 반영됨 (한국천문연구원)</span>`;
+  } else {
+    el.innerHTML = '<span class="hs-err">⚠️ 공휴일 로딩 실패 — <button class="hs-retry" onclick="loadHolidays()">재시도</button></span>';
+  }
+}
 
 // ============================================================
 // 유틸
@@ -890,12 +993,22 @@ function updateJobType(){
 // ============================================================
 // 연수일
 // ============================================================
+function setTrainingLabel(label){
+  document.getElementById('trainingLabel').value = label;
+  document.querySelectorAll('.qtag').forEach(b=>{
+    b.classList.toggle('active', b.textContent===label);
+  });
+  document.getElementById('trainingDate').focus();
+}
 function addTraining(){
   const d = document.getElementById('trainingDate').value;
   const l = document.getElementById('trainingLabel').value.trim() || '연수';
   if(!d){ alert('날짜를 선택하세요.'); return; }
   if(state.trainingDays.find(t=>t.date===d)){ alert('이미 추가된 날짜입니다.'); return; }
   state.trainingDays.push({date:d,label:l});
+  document.getElementById('trainingDate').value='';
+  document.getElementById('trainingLabel').value='';
+  document.querySelectorAll('.qtag').forEach(b=>b.classList.remove('active'));
   renderTrainingList();
   rebuildCalendars();
 }
@@ -924,12 +1037,48 @@ function rebuildCalendars(){
   state.winVacStart = document.getElementById('winVacStart').value;
   state.winVacEnd   = document.getElementById('winVacEnd').value;
 
+  // 공휴일 API: 날짜가 모두 입력된 경우 로딩 (처음 또는 방학 기간 변경 시)
+  if (state.sumVacStart && state.sumVacEnd && state.winVacStart && state.winVacEnd) {
+    if (holidayLoadStatus === 'idle' || holidayLoadStatus === 'error') {
+      loadHolidays(); // 비동기, 완료 후 rebuildCalendars 재호출됨
+      return;
+    }
+  }
+
   const wrap = document.getElementById('calendarsWrap');
   wrap.innerHTML = '';
-  [{y:2026,m:7},{y:2026,m:8},{y:2027,m:1},{y:2027,m:2}]
-    .forEach(({y,m}) => wrap.appendChild(buildMonthCal(y,m)));
+
+  // 방학식/개학 날짜 기준으로 표시할 연월 자동 결정
+  const months = getDisplayMonths();
+  months.forEach(({y,m}) => wrap.appendChild(buildMonthCal(y,m)));
 
   updateResult();
+}
+
+function getDisplayMonths() {
+  // 여름: 방학식 달 ~ 개학 달, 겨울: 방학식 달 ~ 개학 전달
+  const months = [];
+  const seen = new Set();
+  const add = (y, m) => { const k=`${y}-${m}`; if(!seen.has(k)){seen.add(k);months.push({y,m});} };
+
+  const svs = parseDate(state.sumVacStart);
+  const sve = parseDate(state.sumVacEnd);
+  if (svs && sve) {
+    let cur = new Date(svs.getFullYear(), svs.getMonth(), 1);
+    const end = new Date(sve.getFullYear(), sve.getMonth(), 1);
+    while (cur <= end) { add(cur.getFullYear(), cur.getMonth()+1); cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1); }
+  }
+  const wvs = parseDate(state.winVacStart);
+  const wve = parseDate(state.winVacEnd);
+  if (wvs && wve) {
+    let cur = new Date(wvs.getFullYear(), wvs.getMonth(), 1);
+    // 개학일 달은 학기중이므로 개학일 전달까지만
+    const end = new Date(wve.getFullYear(), wve.getMonth()-1, 1);
+    while (cur <= end) { add(cur.getFullYear(), cur.getMonth()+1); cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1); }
+  }
+  // 최소 기본 4개월 보장
+  if (months.length === 0) return [{y:2026,m:7},{y:2026,m:8},{y:2027,m:1},{y:2027,m:2}];
+  return months;
 }
 
 function inBreak(dt){
@@ -1176,7 +1325,6 @@ function updateResult(){
 // 결과표 렌더
 // ============================================================
 function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,total,diff,svs,sve,wvs,wve}){
-  const name=document.getElementById('empName').value||'____';
   const jobSel=document.getElementById('jobType');
   const job=jobSel.options[jobSel.selectedIndex].text.split('(')[0].trim();
 
@@ -1208,7 +1356,6 @@ function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,tot
 
   document.getElementById('resultBody').innerHTML=`
     <div class="result-info-grid">
-      <div class="ri-item"><div class="ri-label">성명</div><div class="ri-val">${name}</div></div>
       <div class="ri-item"><div class="ri-label">직종</div><div class="ri-val">${job}</div></div>
       <div class="ri-item"><div class="ri-label">연간 유급일수</div><div class="ri-val">${state.targetDays}일</div></div>
       <div class="ri-item"><div class="ri-label">여름방학</div><div class="ri-val">${state.sumVacStart?fmtShort(state.sumVacStart)+'~'+fmtShort(addDays(parseDate(state.sumVacEnd),-1)):'-'}</div></div>
@@ -1245,8 +1392,6 @@ function openPreview(){
   const total=schoolDays+breakHols.length+trainingInBreak.length+workDays.length+paidArr.length;
   const diff=state.targetDays-total;
 
-  const school=document.getElementById('schoolName').value||'　　　　학교';
-  const name=document.getElementById('empName').value||'　　　';
   const jobSel=document.getElementById('jobType');
   const job=jobSel.options[jobSel.selectedIndex].text.split('(')[0].trim();
 
@@ -1266,8 +1411,6 @@ function openPreview(){
   document.getElementById('printContent').innerHTML=`
     <div class="print-title">2026학년도 조리사·조리실무사 방학중 연간 근무 계획</div>
     <div class="print-info">
-      <span>소속: <strong>${school}</strong></span>
-      <span>성명: <strong>${name}</strong></span>
       <span>직종: <strong>${job}</strong></span>
       <span>연간 유급일수: <strong>${state.targetDays}일</strong></span>
     </div>
@@ -1307,8 +1450,6 @@ document.getElementById('previewModal').addEventListener('click',e=>{ if(e.targe
 // ============================================================
 function resetAll(){
   if(!confirm('모든 입력 내용을 초기화하시겠습니까?')) return;
-  document.getElementById('empName').value='';
-  document.getElementById('schoolName').value='';
   document.getElementById('jobType').value='323';
   document.getElementById('sumVacStart').value='2026-07-24';
   document.getElementById('sumVacEnd').value='2026-08-19';
