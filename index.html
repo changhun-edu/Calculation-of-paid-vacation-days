@@ -1161,7 +1161,7 @@ function showHolidayStatus(status, msg) {
 function parseDate(s){ if(!s)return null; const[y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
 function dateStr(dt){ return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
 function addDays(dt,n){ if(!dt) return null; const r=new Date(dt); r.setDate(r.getDate()+n); return r; }
-function fmtShort(ds){ const dt=parseDate(ds); if(!dt) return '?'; return `${dt.getMonth()+1}.${dt.getDate()}`; }
+function fmtShort(ds){ const dt=(ds instanceof Date)?ds:parseDate(ds); if(!dt) return '?'; return `${dt.getMonth()+1}.${dt.getDate()}`; }
 
 // ============================================================
 // 탭 & 아코디언
@@ -1615,9 +1615,12 @@ function isVacEdge(ds){
   return state.vacations.some(v=>ds===v.vacStart||ds===v.vacEnd);
 }
 function getVacEdgeLabel(ds){
+  // 방학식 우선 (같은 날이 개학+방학식이면 방학식으로 표시)
   for(const v of state.vacations){
     if(ds===v.vacStart) return '방학식';
-    if(ds===v.vacEnd)   return '개학';
+  }
+  for(const v of state.vacations){
+    if(ds===v.vacEnd) return '개학';
   }
   return '';
 }
@@ -1940,7 +1943,11 @@ function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,tot
     </table>`;
 
   const vacInfoItems = state.vacations.map(v=>{
-    const s = v.vacStart && v.vacEnd ? fmtShort(v.vacStart)+'~'+fmtShort(addDays(parseDate(v.vacEnd),-1)) : '-';
+    let s = '-';
+    if(v.vacStart && v.vacEnd){
+      const endDt = addDays(parseDate(v.vacEnd), -1);
+      s = fmtShort(v.vacStart) + '~' + (endDt ? `${endDt.getMonth()+1}.${endDt.getDate()}` : '?');
+    }
     return `<div class="ri-item"><div class="ri-label">${v.icon} ${v.name}</div><div class="ri-val">${s}</div></div>`;
   }).join('');
 
