@@ -985,7 +985,8 @@ function getVacPairs() {
 // ============================================================
 // 공휴일 — 한국천문연구원 특일정보 API 연동
 // ============================================================
-let HOLIDAYS = {};  // { 'YYYY-MM-DD': '공휴일명' }
+let HOLIDAYS = {};     // 방학기간 필터된 공휴일 (매번 갱신)
+let HOLIDAYS_RAW = {}; // API 원본 공휴일 (삭제 없이 보존)
 let holidayLoadStatus = 'idle'; // idle | loading | done | error
 
 const API_KEY = '9e644bbc9679873e697c8e70127dc6c6d1073968698887cef1fc34aba8e0a36c';
@@ -1011,19 +1012,20 @@ function getVacMonths() {
 
 // 방학 기간 외 공휴일 제거 (호출 시점의 state.vacations 기준)
 function filterHolidaysToBreakOnly() {
-  // 방학기간: 방학식 다음날 ~ 개학일 전날
+  // RAW 원본에서 방학기간(방학식 다음날~개학일 전날) + 일요일 제외 필터 적용
+  // HOLIDAYS를 매번 새로 생성 (RAW 원본은 보존)
   const periods = state.vacations
     .filter(v => v.vacStart && v.vacEnd)
-    .map(v => {
-      const s = addDays(parseDate(v.vacStart), 1);
-      const e = addDays(parseDate(v.vacEnd), -1);
-      return { s, e };
-    });
-  Object.keys(HOLIDAYS).forEach(ds => {
+    .map(v => ({
+      s: addDays(parseDate(v.vacStart), 1),
+      e: addDays(parseDate(v.vacEnd), -1)
+    }));
+  HOLIDAYS = {};
+  Object.entries(HOLIDAYS_RAW).forEach(([ds, name]) => {
     const dt = parseDate(ds);
-    // 일요일이거나 방학 기간 외이면 제거
-    if (dt.getDay() === 0 || !periods.some(({s,e}) => dt >= s && dt <= e)) {
-      delete HOLIDAYS[ds];
+    if (dt.getDay() === 0) return; // 일요일 제외
+    if (periods.some(({s,e}) => dt >= s && dt <= e)) {
+      HOLIDAYS[ds] = name;
     }
   });
 }
@@ -1051,6 +1053,7 @@ async function fetchHolidayMonth(year, month) {
 // 방학 관련 전체 공휴일 로딩
 function resetHolidayAndRebuild() {
   HOLIDAYS = {};
+  HOLIDAYS_RAW = {};
   holidayLoadStatus = 'idle';
   showHolidayStatus('loading');
   rebuildCalendars();
@@ -1069,8 +1072,10 @@ async function loadHolidays() {
         return fetchHolidayMonth(y, m);
       })
     );
-    results.flat().forEach(({ date, name }) => { HOLIDAYS[date] = name; });
-    // 방학중 기간(방학식 다음날~개학일 전날) 외 공휴일 즉시 제거
+    // 원본 저장
+    HOLIDAYS_RAW = {};
+    results.flat().forEach(({ date, name }) => { HOLIDAYS_RAW[date] = name; });
+    // 방학기간 필터 적용
     filterHolidaysToBreakOnly();
     holidayLoadStatus = 'done';
     showHolidayStatus('done');
