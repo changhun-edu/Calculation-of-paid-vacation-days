@@ -1020,7 +1020,8 @@ function filterHolidaysToBreakOnly() {
       s: addDays(parseDate(v.vacStart), 1),
       e: addDays(parseDate(v.vacEnd), -1)
     }));
-  HOLIDAYS = {};
+  // 기존 내용 비우고 새로 채움 (재할당 없이 - 참조 유지)
+  Object.keys(HOLIDAYS).forEach(k => delete HOLIDAYS[k]);
   Object.entries(HOLIDAYS_RAW).forEach(([ds, name]) => {
     const dt = parseDate(ds);
     if (dt.getDay() === 0) return; // 일요일 제외
@@ -1052,8 +1053,8 @@ async function fetchHolidayMonth(year, month) {
 
 // 방학 관련 전체 공휴일 로딩
 function resetHolidayAndRebuild() {
-  HOLIDAYS = {};
-  HOLIDAYS_RAW = {};
+  Object.keys(HOLIDAYS).forEach(k => delete HOLIDAYS[k]);
+  Object.keys(HOLIDAYS_RAW).forEach(k => delete HOLIDAYS_RAW[k]);
   holidayLoadStatus = 'idle';
   showHolidayStatus('loading');
   rebuildCalendars();
@@ -1064,7 +1065,6 @@ async function loadHolidays() {
   holidayLoadStatus = 'loading';
   showHolidayStatus('loading');
   try {
-    HOLIDAYS = {};
     const months = getVacMonths();
     const results = await Promise.all(
       months.map(ym => {
@@ -1072,8 +1072,8 @@ async function loadHolidays() {
         return fetchHolidayMonth(y, m);
       })
     );
-    // 원본 저장
-    HOLIDAYS_RAW = {};
+    // 원본 저장 (기존 내용 비우고 새로 채움 - 재할당 없이)
+    Object.keys(HOLIDAYS_RAW).forEach(k => delete HOLIDAYS_RAW[k]);
     results.flat().forEach(({ date, name }) => { HOLIDAYS_RAW[date] = name; });
     // 방학기간 필터 적용
     filterHolidaysToBreakOnly();
