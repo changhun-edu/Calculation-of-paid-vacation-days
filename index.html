@@ -1813,30 +1813,39 @@ function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,tot
 // 인쇄 미리보기
 // ============================================================
 function openPreview(){
-  const svs=parseDate(state.sumVacStart), sve=parseDate(state.sumVacEnd);
-  const wvs=parseDate(state.winVacStart), wve=parseDate(state.winVacEnd);
   const schoolDays=calcSchoolDays();
   const breakHols=getBreakHolidays();
-  const trainingInBreak=state.trainingDays.filter(t=>{ const dt=parseDate(t.date); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); });
-  const workDays=[...state.selectedWorkDays].filter(ds=>{ const dt=parseDate(ds); return (svs&&sve&&dt>svs&&dt<sve)||(wvs&&wve&&dt>wvs&&dt<wve); }).sort();
+  const trainingInBreak=state.trainingDays.filter(t=>inBreak(parseDate(t.date)));
+  const workDays=[...state.selectedWorkDays].filter(ds=>inBreak(parseDate(ds))).sort();
   const paidArr=[...calcPaidWeekends().keys()].sort();
   const total=schoolDays+breakHols.length+trainingInBreak.length+workDays.length+paidArr.length;
   const diff=state.targetDays-total;
-
   const job=document.getElementById('jobCategory').value||'미선택';
 
-  const sumWork=workDays.filter(ds=>svs&&sve&&parseDate(ds)>svs&&parseDate(ds)<sve);
-  const winWork=workDays.filter(ds=>wvs&&wve&&parseDate(ds)>wvs&&parseDate(ds)<wve);
-  const sumHols=breakHols.filter(h=>svs&&sve&&parseDate(h.date)>svs&&parseDate(h.date)<sve);
-  const winHols=breakHols.filter(h=>wvs&&wve&&parseDate(h.date)>wvs&&parseDate(h.date)<wve);
-  const sumTrn=trainingInBreak.filter(t=>svs&&sve&&parseDate(t.date)>svs&&parseDate(t.date)<sve);
-  const winTrn=trainingInBreak.filter(t=>wvs&&wve&&parseDate(t.date)>wvs&&parseDate(t.date)<wve);
-  const sumWk=paidArr.filter(ds=>svs&&sve&&parseDate(ds)>=svs&&parseDate(ds)<=sve);
-  const winWk=paidArr.filter(ds=>wvs&&wve&&parseDate(ds)>=wvs&&parseDate(ds)<=wve);
+  // 방학별 분리 (state.vacations 기준)
+  const inVac=(ds,v)=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); const dt=parseDate(ds); return s&&e&&dt>s&&dt<e; };
+  const inVacRange=(ds,v)=>{ const s=parseDate(v.vacStart),e=parseDate(v.vacEnd); const dt=parseDate(ds); return s&&e&&dt>=s&&dt<=e; };
 
   const fmtDates=(arr)=>arr.length?arr.map(ds=>fmtShort(ds)).join(', '):'-';
   const fmtHols=(arr)=>arr.length?arr.map(h=>`${fmtShort(h.date)}(${h.name})`).join(', '):'-';
   const fmtTrn=(arr)=>arr.length?arr.map(t=>`${fmtShort(t.date)}(${t.label})`).join(', '):'-';
+
+  // 방학별 행 생성
+  const vacRows = state.vacations.map(v=>{
+    const vw=workDays.filter(ds=>inVac(ds,v));
+    const vh=breakHols.filter(h=>inVac(h.date,v));
+    const vt=trainingInBreak.filter(t=>inVac(t.date,v));
+    const vk=paidArr.filter(ds=>inVacRange(ds,v));
+    const sub=vw.length+vh.length+vt.length+vk.length;
+    return `
+      <tr><td rowspan="5">${v.icon}<br>${v.name}</td><td>출근일</td><td>${vw.length}일</td><td class="td-left">${fmtDates(vw)}</td></tr>
+      <tr><td>공휴일</td><td>${vh.length}일</td><td class="td-left">${fmtHols(vh)}</td></tr>
+      <tr><td>연수·교육일</td><td>${vt.length}일</td><td class="td-left">${fmtTrn(vt)}</td></tr>
+      <tr><td>토·일 유급</td><td>${vk.length}일</td><td class="td-left">${fmtDates(vk)}</td></tr>
+      <tr style="background:#f0fdf4;font-weight:700;"><td>소계</td><td colspan="2">${sub}일</td></tr>`;
+  }).join('');
+
+  const diffText=diff===0?'✅ 달성':diff>0?`▲ ${diff}일 부족`:`▼ ${Math.abs(diff)}일 초과`;
 
   document.getElementById('printContent').innerHTML=`
     <div class="print-title">2026학년도 조리사·조리실무사 방학중 연간 근무 계획</div>
@@ -1846,21 +1855,11 @@ function openPreview(){
     </div>
     <table class="print-table">
       <tr><th>구분</th><th>항목</th><th>일수</th><th>날짜</th></tr>
-      <tr><td rowspan="5">☀️<br>여름<br>방학</td><td>출근일</td><td>${sumWork.length}일</td><td class="td-left">${fmtDates(sumWork)}</td></tr>
-      <tr><td>공휴일</td><td>${sumHols.length}일</td><td class="td-left">${fmtHols(sumHols)}</td></tr>
-      <tr><td>연수·교육일</td><td>${sumTrn.length}일</td><td class="td-left">${fmtTrn(sumTrn)}</td></tr>
-      <tr><td>토·일 유급</td><td>${sumWk.length}일</td><td class="td-left">${fmtDates(sumWk)}</td></tr>
-      <tr style="background:#f0fdf4;font-weight:700;"><td>소계</td><td colspan="2">${sumWork.length+sumHols.length+sumTrn.length+sumWk.length}일</td></tr>
-      <tr><td rowspan="5">❄️<br>겨울<br>방학</td><td>출근일</td><td>${winWork.length}일</td><td class="td-left">${fmtDates(winWork)}</td></tr>
-      <tr><td>공휴일</td><td>${winHols.length}일</td><td class="td-left">${fmtHols(winHols)}</td></tr>
-      <tr><td>연수·교육일</td><td>${winTrn.length}일</td><td class="td-left">${fmtTrn(winTrn)}</td></tr>
-      <tr><td>토·일 유급</td><td>${winWk.length}일</td><td class="td-left">${fmtDates(winWk)}</td></tr>
-      <tr style="background:#f0fdf4;font-weight:700;"><td>소계</td><td colspan="2">${winWork.length+winHols.length+winTrn.length+winWk.length}일</td></tr>
+      ${vacRows}
     </table>
     <div class="print-formula">
       학기중 ${schoolDays}일 + 공휴일 ${breakHols.length}일 + 연수 ${trainingInBreak.length}일 + 출근 ${workDays.length}일 + 토·일유급 ${paidArr.length}일
-      = <strong>${total}일</strong> / 목표 ${state.targetDays}일
-      ${diff===0?'✅ 달성':diff>0?`▲ ${diff}일 부족`:`▼ ${Math.abs(diff)}일 초과`}
+      = <strong>${total}일</strong> / 목표 ${state.targetDays}일 ${diffText}
     </div>
     <div class="print-rule">
       변경사유: 방학 중 근무 2일 이상 → 일요일 유급. 방학 중 근무 2일 이상 + 다음 주 1일 이상 → 토·일요일 유급.
