@@ -1019,13 +1019,17 @@ function getBreakHolidays() {
       s: addDays(parseDate(v.vacStart), 1),
       e: addDays(parseDate(v.vacEnd), -1)
     }));
-  return Object.entries(HOLIDAYS_RAW)
+  const result = Object.entries(HOLIDAYS_RAW)
     .filter(([ds]) => {
       const dt = parseDate(ds);
-      if (dt.getDay() === 0) return false; // 일요일 제외
+      if (dt.getDay() === 0) return false;
       return periods.some(({s,e}) => dt >= s && dt <= e);
     })
     .map(([ds,name]) => ({date:ds, name}));
+  console.log('[DEBUG] HOLIDAYS_RAW 총:', Object.keys(HOLIDAYS_RAW).length,
+    '/ getBreakHolidays 결과:', result.length,
+    '/ 날짜:', result.map(h=>h.date));
+  return result;
 }
 
 // 단일 연월 공휴일 API 호출
