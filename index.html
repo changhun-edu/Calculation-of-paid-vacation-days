@@ -1025,6 +1025,11 @@ async function loadHolidays() {
       })
     );
     results.flat().forEach(({ date, name }) => { HOLIDAYS[date] = name; });
+    // 방학중 기간에 속하지 않는 공휴일 제거 (학기중 달이 포함된 경우 방어)
+    Object.keys(HOLIDAYS).forEach(ds => {
+      const dt = parseDate(ds);
+      if (!inBreak(dt)) delete HOLIDAYS[ds];
+    });
     holidayLoadStatus = 'done';
     showHolidayStatus('done');
     rebuildCalendars();
@@ -1448,15 +1453,27 @@ function toggleWork(ds){
 }
 
 function refreshPaidWeekends(){
-  // 기존 유급 주말 셀 초기화 (s-paid-wknd 클래스 제거 → s-off 로 복원)
+  // 기존 s-paid-wknd 셀 → 원래 상태로 복원
   document.querySelectorAll('.s-paid-wknd').forEach(cell => {
     const ds = cell.dataset.date;
     if(!ds) return;
     const dow = parseDate(ds).getDay();
-    // 공휴일이거나 선택근무일이면 건드리지 않음
-    if(HOLIDAYS[ds] || state.selectedWorkDays.has(ds)) return;
-    cell.className = 'cal-day s-off' + (dow===0?' day-sunday':dow===6?' day-saturday':'');
-    cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div>`;
+    const dowCls = dow===0?' day-sunday':dow===6?' day-saturday':'';
+    const dayNum = parseInt(ds.slice(8));
+    if(HOLIDAYS[ds]){
+      // 공휴일이면 s-holiday로 복원
+      cell.className = 'cal-day s-holiday' + dowCls;
+      cell.innerHTML = `<div class="day-num">${dayNum}</div><div class="day-badge">${HOLIDAYS[ds]}</div>`;
+    } else if(state.selectedWorkDays.has(ds)){
+      // 선택 근무일이면 s-work로 복원
+      cell.className = 'cal-day s-work' + dowCls;
+      cell.innerHTML = `<div class="day-num">${dayNum}</div><div class="day-badge">✓근무</div>`;
+      cell.onclick = ()=>toggleWork(ds);
+    } else {
+      // 일반 비근무일
+      cell.className = 'cal-day s-off' + dowCls;
+      cell.innerHTML = `<div class="day-num">${dayNum}</div>`;
+    }
   });
   // 새로 계산된 유급 주말 반영
   const paidSet = calcPaidWeekends();
@@ -1466,6 +1483,7 @@ function refreshPaidWeekends(){
       const dow = parseDate(ds).getDay();
       cell.className = 'cal-day s-paid-wknd' + (dow===0?' day-sunday':' day-saturday');
       cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div><div class="day-badge">유급</div>`;
+      cell.onclick = null;
     }
   });
 }
@@ -1634,13 +1652,13 @@ function updateResult(){
   });
 
   // 결과표 렌더
-  renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,total,diff,svs,sve,wvs,wve});
+  renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,total,diff});
 }
 
 // ============================================================
 // 결과표 렌더
 // ============================================================
-function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,total,diff,svs,sve,wvs,wve}){
+function renderResult({schoolDays,breakHols,trainingInBreak,workDays,paidArr,total,diff}){
   const cat=document.getElementById('jobCategory').value||'미선택';
   const job=cat;
 
