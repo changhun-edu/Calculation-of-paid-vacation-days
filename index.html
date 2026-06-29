@@ -43,77 +43,93 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   position:sticky;top:0;z-index:200;
   box-shadow:0 2px 10px rgba(0,0,0,0.3);
 }
+/* 한 줄 통합 헤더 */
 .header-top{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 1.2rem 6px;
-}
-.app-title{
-  display:flex;flex-direction:column;gap:1px;
-}
-.title-main{font-size:1.05rem;font-weight:700;color:#fff;line-height:1.3;letter-spacing:-0.3px;}
-.title-sub{font-size:0.78rem;color:#93c5fd;letter-spacing:0.2px;}
-.tab-nav{display:flex;gap:5px;}
-.tab-btn{
-  background:transparent;
-  border:2px solid #334e6b;
-  color:#93c5fd;
-  padding:7px 18px;
-  border-radius:7px;
-  cursor:pointer;
-  font-size:0.95rem;
-  font-weight:700;
-  font-family:var(--font);
-  transition:all 0.15s;
-  white-space:nowrap;
-}
-.tab-btn.active{background:var(--blue);border-color:#60a5fa;color:#fff;}
-.tab-btn:hover:not(.active){background:rgba(255,255,255,0.08);}
-
-/* ===== 상단 고정 카운터 바 ===== */
-.counter-bar{
-  background:var(--navy2);
-  border-top:1px solid #2d5a8a;
-  padding:7px 1.2rem;
-  display:flex;
-  align-items:center;
-  gap:0;
+  display:flex;align-items:center;gap:0;
+  padding:0 1.2rem;
+  height:52px;
   overflow-x:auto;
   scrollbar-width:none;
 }
-.counter-bar::-webkit-scrollbar{display:none;}
+.header-top::-webkit-scrollbar{display:none;}
+.app-title{
+  display:flex;flex-direction:column;gap:1px;
+  flex-shrink:0;
+  padding-right:16px;
+  border-right:1px solid #2d5a8a;
+}
+.title-main{font-size:0.98rem;font-weight:700;color:#fff;line-height:1.25;letter-spacing:-0.3px;white-space:nowrap;}
+.title-sub{font-size:0.72rem;color:#93c5fd;white-space:nowrap;}
+
+/* 카운터 항목들 — 타이틀 바로 옆 */
+.cb-items-wrap{
+  display:flex;align-items:center;gap:0;
+  flex:1;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.cb-items-wrap::-webkit-scrollbar{display:none;}
 .cb-item{
   display:flex;flex-direction:column;align-items:center;
   padding:0 14px;
   border-right:1px solid #2d5a8a;
-  min-width:72px;
+  min-width:68px;
   flex-shrink:0;
+  height:52px;justify-content:center;
 }
-.cb-item:last-child{border-right:none;}
-.cb-label{font-size:0.72rem;color:#93c5fd;white-space:nowrap;}
+.cb-label{font-size:0.7rem;color:#93c5fd;white-space:nowrap;}
 .cb-val{font-size:1.05rem;font-weight:700;color:#fff;}
+
+/* 합계 박스 */
 .cb-total{
-  margin-left:auto;
-  display:flex;align-items:center;gap:12px;
+  display:flex;align-items:center;gap:10px;
   flex-shrink:0;
-  padding-left:14px;
+  padding:0 14px;
+  border-left:1px solid #2d5a8a;
+  border-right:1px solid #2d5a8a;
+  height:52px;
 }
 .cb-sum-box{
   display:flex;align-items:center;gap:8px;
   background:rgba(255,255,255,0.08);
   border-radius:8px;
-  padding:4px 14px;
+  padding:4px 12px;
   border:1.5px solid transparent;
   transition:all 0.3s;
+  white-space:nowrap;
 }
 .cb-sum-box.ok{background:rgba(22,163,74,0.25);border-color:#4ade80;}
 .cb-sum-box.low{background:rgba(220,38,38,0.2);border-color:#f87171;}
 .cb-sum-box.over{background:rgba(217,119,6,0.2);border-color:#fbbf24;}
-.cb-sum-label{font-size:0.8rem;color:#cbd5e1;}
-.cb-sum-val{font-size:1.2rem;font-weight:700;color:#fff;}
-.cb-remain{font-size:0.85rem;font-weight:700;padding:4px 10px;border-radius:6px;}
+.cb-sum-label{font-size:0.75rem;color:#cbd5e1;}
+.cb-sum-val{font-size:1.15rem;font-weight:700;color:#fff;}
+.cb-remain{font-size:0.82rem;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;}
 .cb-remain.ok{color:#4ade80;}
 .cb-remain.low{color:#f87171;}
 .cb-remain.over{color:#fbbf24;}
+
+/* 탭 버튼 — 맨 오른쪽 */
+.tab-nav{
+  display:flex;gap:5px;
+  flex-shrink:0;
+  padding-left:14px;
+}
+.tab-btn{
+  background:transparent;
+  border:2px solid #334e6b;
+  color:#93c5fd;
+  padding:6px 15px;
+  border-radius:7px;
+  cursor:pointer;
+  font-size:0.9rem;
+  font-weight:700;
+  font-family:var(--font);
+  transition:all 0.15s;
+  white-space:nowrap;
+  height:36px;
+}
+.tab-btn.active{background:var(--blue);border-color:#60a5fa;color:#fff;}
+.tab-btn:hover:not(.active){background:rgba(255,255,255,0.08);}
 
 /* ===== 탭 페이지 ===== */
 .page{display:none;}
@@ -489,11 +505,14 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 }
 @media(max-width:600px){
   html{font-size:15px;}
-  .title-main{font-size:0.88rem;}
-  .tab-btn{padding:6px 11px;font-size:0.85rem;}
-  .cb-item{padding:0 9px;min-width:58px;}
-  .cb-label{font-size:0.68rem;}
-  .cb-val{font-size:0.95rem;}
+  .title-main{font-size:0.82rem;}
+  .title-sub{display:none;}
+  .tab-btn{padding:5px 9px;font-size:0.82rem;height:32px;}
+  .cb-item{padding:0 8px;min-width:52px;}
+  .cb-label{font-size:0.65rem;}
+  .cb-val{font-size:0.9rem;}
+  .cb-sum-val{font-size:1rem;}
+  .cb-remain{font-size:0.75rem;padding:3px 6px;}
   .result-cols{grid-template-columns:1fr;}
   .result-info-grid{grid-template-columns:1fr 1fr;}
 }
@@ -502,7 +521,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 @media print{
   body{background:#fff;}
   .app-header,.left-panel,.cal-legend,.action-btns,.app-footer,
-  .calendars-wrap,.tab-nav,.counter-bar{display:none !important;}
+  .calendars-wrap,.tab-nav,.cb-items-wrap,.cb-total{display:none !important;}
   .sim-layout{display:block;padding:0;}
   .right-panel{gap:0.5rem;}
   .result-card{box-shadow:none;border:1px solid #ccc;}
@@ -515,25 +534,23 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 </head>
 <body>
 
-<!-- ===== 헤더 ===== -->
+<!-- ===== 헤더 (1줄 통합) ===== -->
 <header class="app-header">
   <div class="header-top">
+    <!-- 타이틀 -->
     <div class="app-title">
       <div class="title-main">🗓️ 방학중 비근무 직종 연간 근무 일수 계산기</div>
       <div class="title-sub">2026학년도 광주광역시교육청 교육공무직원</div>
     </div>
-    <nav class="tab-nav">
-      <button class="tab-btn active" onclick="showTab('sim',this)">📋 계산기</button>
-      <button class="tab-btn" onclick="showTab('guide',this)">📖 규정 안내</button>
-    </nav>
-  </div>
-  <!-- 상단 고정 카운터 바 -->
-  <div class="counter-bar" id="counterBar">
-    <div class="cb-item"><div class="cb-label">① 학기중</div><div class="cb-val" id="cb-school">-</div></div>
-    <div class="cb-item"><div class="cb-label">② 공휴일</div><div class="cb-val" id="cb-holiday">-</div></div>
-    <div class="cb-item"><div class="cb-label">③④ 연수</div><div class="cb-val" id="cb-training">-</div></div>
-    <div class="cb-item"><div class="cb-label">⑤ 출근</div><div class="cb-val" id="cb-work">-</div></div>
-    <div class="cb-item"><div class="cb-label">⑥⑦ 토·일유급</div><div class="cb-val" id="cb-weekend">-</div></div>
+    <!-- 카운터 항목 -->
+    <div class="cb-items-wrap">
+      <div class="cb-item"><div class="cb-label">① 학기중</div><div class="cb-val" id="cb-school">-</div></div>
+      <div class="cb-item"><div class="cb-label">② 공휴일</div><div class="cb-val" id="cb-holiday">-</div></div>
+      <div class="cb-item"><div class="cb-label">③④ 연수</div><div class="cb-val" id="cb-training">-</div></div>
+      <div class="cb-item"><div class="cb-label">⑤ 출근</div><div class="cb-val" id="cb-work">-</div></div>
+      <div class="cb-item"><div class="cb-label">⑥⑦ 토·일유급</div><div class="cb-val" id="cb-weekend">-</div></div>
+    </div>
+    <!-- 합계 -->
     <div class="cb-total">
       <div class="cb-sum-box low" id="cb-sum-box">
         <div class="cb-sum-label">합계 / 목표 <span id="cb-target">323</span>일</div>
@@ -541,6 +558,11 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
       </div>
       <div class="cb-remain low" id="cb-remain">계산 중</div>
     </div>
+    <!-- 탭 버튼 -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="showTab('sim',this)">📋 계산기</button>
+      <button class="tab-btn" onclick="showTab('guide',this)">📖 규정 안내</button>
+    </nav>
   </div>
 </header>
 
@@ -1056,29 +1078,23 @@ function rebuildCalendars(){
 }
 
 function getDisplayMonths() {
-  // 여름: 방학식 달 ~ 개학 달, 겨울: 방학식 달 ~ 개학 전달
-  const months = [];
-  const seen = new Set();
-  const add = (y, m) => { const k=`${y}-${m}`; if(!seen.has(k)){seen.add(k);months.push({y,m});} };
-
+  // 여름: 방학식 달 + 다음달, 겨울: 방학식 달 + 다음달 — 항상 4개월만 표시
   const svs = parseDate(state.sumVacStart);
-  const sve = parseDate(state.sumVacEnd);
-  if (svs && sve) {
-    let cur = new Date(svs.getFullYear(), svs.getMonth(), 1);
-    const end = new Date(sve.getFullYear(), sve.getMonth(), 1);
-    while (cur <= end) { add(cur.getFullYear(), cur.getMonth()+1); cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1); }
-  }
   const wvs = parseDate(state.winVacStart);
-  const wve = parseDate(state.winVacEnd);
-  if (wvs && wve) {
-    let cur = new Date(wvs.getFullYear(), wvs.getMonth(), 1);
-    // 개학일 달은 학기중이므로 개학일 전달까지만
-    const end = new Date(wve.getFullYear(), wve.getMonth()-1, 1);
-    while (cur <= end) { add(cur.getFullYear(), cur.getMonth()+1); cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1); }
-  }
-  // 최소 기본 4개월 보장
-  if (months.length === 0) return [{y:2026,m:7},{y:2026,m:8},{y:2027,m:1},{y:2027,m:2}];
-  return months;
+  const sumY = svs ? svs.getFullYear() : 2026;
+  const sumM = svs ? svs.getMonth()+1 : 7;
+  const sumM2 = sumM === 12 ? 1 : sumM+1;
+  const sumY2 = sumM === 12 ? sumY+1 : sumY;
+  const winY = wvs ? wvs.getFullYear() : 2027;
+  const winM = wvs ? wvs.getMonth()+1 : 1;
+  const winM2 = winM === 12 ? 1 : winM+1;
+  const winY2 = winM === 12 ? winY+1 : winY;
+  return [
+    {y:sumY,  m:sumM},
+    {y:sumY2, m:sumM2},
+    {y:winY,  m:winM},
+    {y:winY2, m:winM2},
+  ];
 }
 
 function inBreak(dt){
@@ -1168,9 +1184,54 @@ function buildMonthCal(year, month){
 }
 
 function toggleWork(ds){
-  if(state.selectedWorkDays.has(ds)) state.selectedWorkDays.delete(ds);
-  else state.selectedWorkDays.add(ds);
-  rebuildCalendars();
+  if(state.selectedWorkDays.has(ds)){
+    state.selectedWorkDays.delete(ds);
+    // 셀을 비근무(흰색)로 즉시 변경
+    const cell = document.querySelector(`[data-date="${ds}"]`);
+    if(cell){
+      const dow = parseDate(ds).getDay();
+      cell.className = 'cal-day s-off clickable' + (dow===0?' day-sunday':dow===6?' day-saturday':'');
+      cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div>`;
+      cell.addEventListener('click', ()=>toggleWork(ds));
+    }
+  } else {
+    state.selectedWorkDays.add(ds);
+    // 셀을 근무일(초록)로 즉시 변경
+    const cell = document.querySelector(`[data-date="${ds}"]`);
+    if(cell){
+      const dow = parseDate(ds).getDay();
+      cell.className = 'cal-day s-work' + (dow===0?' day-sunday':dow===6?' day-saturday':'');
+      cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div><div class="day-badge">✓근무</div>`;
+      cell.addEventListener('click', ()=>toggleWork(ds));
+    }
+  }
+  // 달력 전체 재빌드 없이 카운터·결과표만 업데이트
+  updateResult();
+  // 토·일 유급 셀만 재계산하여 반영
+  refreshPaidWeekends();
+}
+
+function refreshPaidWeekends(){
+  // 기존 유급 주말 셀 초기화 (s-paid-wknd 클래스 제거 → s-off 로 복원)
+  document.querySelectorAll('.s-paid-wknd').forEach(cell => {
+    const ds = cell.dataset.date;
+    if(!ds) return;
+    const dow = parseDate(ds).getDay();
+    // 공휴일이거나 선택근무일이면 건드리지 않음
+    if(HOLIDAYS[ds] || state.selectedWorkDays.has(ds)) return;
+    cell.className = 'cal-day s-off' + (dow===0?' day-sunday':dow===6?' day-saturday':'');
+    cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div>`;
+  });
+  // 새로 계산된 유급 주말 반영
+  const paidSet = calcPaidWeekends();
+  paidSet.forEach(ds => {
+    const cell = document.querySelector(`[data-date="${ds}"]`);
+    if(cell){
+      const dow = parseDate(ds).getDay();
+      cell.className = 'cal-day s-paid-wknd' + (dow===0?' day-sunday':' day-saturday');
+      cell.innerHTML = `<div class="day-num">${parseInt(ds.slice(8))}</div><div class="day-badge">유급</div>`;
+    }
+  });
 }
 
 // ============================================================
