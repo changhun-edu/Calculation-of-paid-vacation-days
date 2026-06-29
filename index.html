@@ -211,11 +211,11 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 }
 .btn-add:hover{background:var(--navy);}
 .training-input-wrap{display:flex;flex-direction:column;gap:6px;}
-.training-input-row{display:flex;gap:6px;}
+.training-input-row{display:flex;gap:6px;align-items:center;min-width:0;}
 .training-input-row input[type="date"]{
-  flex:0 0 auto;width:145px;
+  flex:1;min-width:0;
   border:1.5px solid var(--gray-bd);border-radius:7px;
-  padding:8px 9px;font-size:0.88rem;font-family:var(--font);
+  padding:8px 6px;font-size:0.85rem;font-family:var(--font);
   color:var(--text);background:#fff;
 }
 .training-input-row input[type="text"]{
@@ -229,8 +229,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   box-shadow:0 0 0 3px rgba(37,99,168,0.12);
 }
 .btn-add-full{width:100%;padding:9px;}
-.training-range-sep{font-size:1rem;font-weight:700;color:var(--text2);flex-shrink:0;align-self:center;padding:0 2px;}
-.training-input-row input[type="date"]{flex:1;width:auto;}
+.training-range-sep{font-size:0.95rem;font-weight:700;color:var(--text2);flex-shrink:0;padding:0 1px;}
 
 /* 방학 블록 동적 */
 .btn-add-vac{
@@ -1010,6 +1009,25 @@ function getVacMonths() {
   return [...months];
 }
 
+// 방학 기간 외 공휴일 제거 (호출 시점의 state.vacations 기준)
+function filterHolidaysToBreakOnly() {
+  // 방학기간: 방학식 다음날 ~ 개학일 전날
+  const periods = state.vacations
+    .filter(v => v.vacStart && v.vacEnd)
+    .map(v => {
+      const s = addDays(parseDate(v.vacStart), 1);
+      const e = addDays(parseDate(v.vacEnd), -1);
+      return { s, e };
+    });
+  Object.keys(HOLIDAYS).forEach(ds => {
+    const dt = parseDate(ds);
+    // 일요일이거나 방학 기간 외이면 제거
+    if (dt.getDay() === 0 || !periods.some(({s,e}) => dt >= s && dt <= e)) {
+      delete HOLIDAYS[ds];
+    }
+  });
+}
+
 // 단일 연월 공휴일 API 호출
 async function fetchHolidayMonth(year, month) {
   const mm = String(month).padStart(2, '0');
@@ -1052,14 +1070,8 @@ async function loadHolidays() {
       })
     );
     results.flat().forEach(({ date, name }) => { HOLIDAYS[date] = name; });
-    // 방학중 기간(방학식 다음날~개학일 전날)에 속하지 않는 공휴일 명시적 제거
-    const vacPeriods0 = state.vacations
-      .filter(v => v.vacStart && v.vacEnd)
-      .map(v => ({ s: addDays(parseDate(v.vacStart), 1), e: addDays(parseDate(v.vacEnd), -1) }));
-    Object.keys(HOLIDAYS).forEach(ds => {
-      const dt = parseDate(ds);
-      if (!vacPeriods0.some(({s,e}) => dt >= s && dt <= e)) delete HOLIDAYS[ds];
-    });
+    // 방학중 기간(방학식 다음날~개학일 전날) 외 공휴일 즉시 제거
+    filterHolidaysToBreakOnly();
     holidayLoadStatus = 'done';
     showHolidayStatus('done');
     rebuildCalendars();
@@ -1649,16 +1661,10 @@ function calcSchoolDays(){
 function updateResult(){
   const schoolDays=calcSchoolDays();
 
-  // 방학중 공휴일 (일요일 제외, 방학기간 내 명시적 필터)
-  const vacPeriods=state.vacations
-    .filter(v=>v.vacStart&&v.vacEnd)
-    .map(v=>({s:addDays(parseDate(v.vacStart),1), e:addDays(parseDate(v.vacEnd),-1)}));
+  // 방학중 공휴일 — HOLIDAYS는 이미 방학기간+일요일 제외로 필터된 상태
+  // 혹시 남은 학기중 날짜 방어적 재필터
+  filterHolidaysToBreakOnly();
   const breakHols=Object.entries(HOLIDAYS)
-    .filter(([ds])=>{
-      const dt=parseDate(ds);
-      if(dt.getDay()===0) return false;
-      return vacPeriods.some(({s,e})=>dt>=s&&dt<=e);
-    })
     .map(([ds,name])=>({date:ds,name}));
 
   // 방학중 연수
