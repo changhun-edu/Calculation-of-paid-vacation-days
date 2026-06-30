@@ -2451,7 +2451,7 @@ function openPreview(){
   const diffText=diff===0?'✅ 달성':diff>0?`▲ ${diff}일 부족`:`▼ ${Math.abs(diff)}일 초과`;
 
   document.getElementById('printContent').innerHTML=`
-    <div class="print-title">2026학년도 조리사·조리실무사 방학중 연간 근무 계획</div>
+    <div class="print-title">2026학년도 ${job} 방학중 연간 근무 계획</div>
     <div class="print-info">
       <span>직종: <strong>${job}</strong></span>
       <span>연간 유급일수: <strong>${state.targetDays}일</strong></span>
