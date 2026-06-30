@@ -1798,7 +1798,7 @@ function updateVacDate(id, field, val){
   }
 
   // 봄방학 방학식 입력 시 자동 처리
-  if(!v.fixedEnd && field==='vacStart' && val && isSpringVacation(v)){
+  if(!v.fixedEnd && field==='vacStart' && val && isSpringVacation(v, val)){
     autoAdjustSpringVacation(v, val);
   }
 
@@ -1806,8 +1806,10 @@ function updateVacDate(id, field, val){
   resetHolidayAndRebuild();
 }
 
-// 봄방학 여부 판단: 겨울방학(fixedEnd) 이후에 위치한 방학
-function isSpringVacation(v){
+// 봄방학 여부 판단: 방학식이 1~2월이고, 겨울방학(fixedEnd)이 존재하는 경우만 봄방학으로 간주
+function isSpringVacation(v, vacStart){
+  const month = parseInt(vacStart.slice(5,7));
+  if(month > 2) return false; // 1~2월 시작이 아니면 봄방학 아님 (예: 여름방학)
   return state.vacations.some(w => w.fixedEnd && w.id !== v.id);
 }
 
