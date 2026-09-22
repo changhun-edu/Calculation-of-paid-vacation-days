@@ -686,10 +686,25 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 
 /* ===== 푸터 ===== */
 .app-footer{
-  text-align:center;padding:14px;
-  font-size:0.78rem;color:#9ca3af;
+  text-align:center;padding:18px 16px 24px;
+  font-size:0.78rem;color:#9ca3af;line-height:1.75;
   border-top:1px solid var(--gray-bd);margin-top:0.5rem;
+  background:#fafbfc;
 }
+.app-footer .foot-disclaimer{
+  max-width:820px;margin:0 auto 10px;color:#6b7280;font-size:0.8rem;
+}
+.app-footer .foot-disclaimer strong{color:#4b5563;}
+.app-footer .foot-source{
+  max-width:820px;margin:0 auto 10px;text-align:left;
+  background:#fff;border:1px solid var(--gray-bd);border-radius:8px;
+  padding:10px 14px;font-size:0.75rem;color:#8a929c;
+}
+.app-footer .foot-source > strong{display:block;margin-bottom:4px;color:#6b7280;}
+.app-footer .foot-source ul{margin:0;padding-left:1.1em;}
+.app-footer .foot-source li{margin-bottom:3px;}
+.app-footer .foot-note{color:#aab1ba;}
+.app-footer .foot-credit{font-size:0.78rem;color:#9ca3af;}
 
 /* ===== 반응형 ===== */
 @media(max-width:960px){
@@ -765,7 +780,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
     <!-- 타이틀 -->
     <div class="app-title">
       <div class="title-main">🗓️ 방학중 비근무 직종 연간 근무 일수 계산기</div>
-      <div class="title-sub">2026학년도 광주광역시교육청 교육공무직원</div>
+      <div class="title-sub">2026학년도 광주광역시교육청 지침 기반 · 비공식 참고용</div>
     </div>
     <!-- 카운터 항목 -->
     <div class="cb-items-wrap">
@@ -919,7 +934,6 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 
   </div><!-- /right-panel -->
 </div>
-<footer class="app-footer">만든이 2026 최창훈</footer>
 </div><!-- /sim-page -->
 
 <!-- ===== 중도입사 탭 ===== -->
@@ -930,7 +944,8 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
   <div class="me-note">
     <strong>📌 중도 복직·입사자 유급일수 산정 기준</strong><br>
     복직(입사)자의 연간 유급일수 = <strong>① 학기중 실재직일수</strong> + <strong>② 방학중 유급일수</strong><br>
-    ① 소속학교 해당직종 전체 학기중 일수에서 <em>사실상 직무에 종사하지 않은 기간</em> 제외<br>
+    ① 소속학교 해당직종 전체 학기중 일수에서 <em>사실상 직무에 종사하지 않은 기간</em>에 해당하는 <strong>학기중 일수</strong> 제외<br>
+    <span style="font-size:0.85rem;color:var(--text2);">예) 9.23. 복직 → 3.1.~9.22. 중 학기중 일수 175일 제외 (달력 206일 - 여름방학 31일)</span><br>
     ② 1학기 중 복직 → 1·2학기 방학 모두 / 2학기 중 복직 → 2학기 방학만
   </div>
 
@@ -959,6 +974,12 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
       <hr class="me-sep">
 
       <!-- 방학 일정 (계산기 탭과 동기화 안내) -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+        <button type="button" onclick="meSyncVacation()"
+          style="background:#eef2f7;border:1px solid var(--gray-bd);border-radius:7px;padding:6px 12px;font-size:0.82rem;color:var(--text2);cursor:pointer;">
+          🔄 계산기 탭의 방학 일정 불러오기
+        </button>
+      </div>
       <div class="me-grid">
         <div class="form-row">
           <label>여름방학식 날짜</label>
@@ -967,7 +988,7 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
         </div>
         <div class="form-row">
           <label>여름 개학일</label>
-          <input type="date" id="me-sumVacEnd" value="2026-08-20" oninput="meCalc()">
+          <input type="date" id="me-sumVacEnd" value="2026-08-19" oninput="meCalc()">
           <div class="form-hint">개학일 당일은 학기중 근무일</div>
         </div>
         <div class="form-row">
@@ -1007,7 +1028,8 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
         <div class="form-row">
           <label>복직(입사)일</label>
           <input type="date" id="me-entryDate" oninput="meCalc()">
-          <div class="form-hint">사실상 직무에 종사하지 않은 기간(3.1 ~ 입사 전날) 제외</div>
+          <div class="form-hint">사실상 직무에 종사하지 않은 기간(3.1. ~ 입사 전날) 제외<br>
+            ※ 달력 전체 일수가 아니라 그 기간 중 <strong>학기중 일수</strong>만 제외합니다(방학기간은 빼지 않음).</div>
         </div>
       </div>
 
@@ -1219,6 +1241,24 @@ body{font-family:var(--font);background:#dde8f4;color:var(--text);min-height:100
 </div>
 </div><!-- /guide-page -->
 
+<!-- ===== 공통 푸터 (출처·면책) ===== -->
+<footer class="app-footer">
+  <div class="foot-disclaimer">
+    본 사이트는 개인이 제작한 <strong>비공식 참고용 도구</strong>로, 광주광역시교육청이 제공하는 공식 서비스가 아닙니다.<br>
+    계산 결과는 참고용이며, 최종 유급일수는 <strong>지침 원문과 소속 학교·교육청 담당 부서의 확인</strong>을 따릅니다.
+  </div>
+  <div class="foot-source">
+    <strong>출처</strong>
+    <ul>
+      <li>광주광역시교육청 「2026년 교육공무직원 임금 지급 기준」 중 ‘방학중 비근무 직종 연간 근무 일수 제도’(p.35~40)
+        — 광주광역시교육청·전국학교비정규직연대회의 2024 단체협약 부칙 제9조 관련
+        <span class="foot-note">(공공저작물, 저작권법 제24조의2에 따라 이용)</span></li>
+      <li>공휴일 정보: 한국천문연구원 「특일 정보」 — 공공데이터포털(data.go.kr) 오픈API</li>
+    </ul>
+  </div>
+  <div class="foot-credit">ⓒ 2026 최창훈 (화면 구성 및 코드)</div>
+</footer>
+
 <!-- ===== 인쇄 미리보기 모달 ===== -->
 <div class="modal-overlay" id="previewModal">
   <div class="modal-box">
@@ -1406,6 +1446,21 @@ function meSelectType(el, type) {
   meCalc();
 }
 
+// 계산기 탭에 입력한 여름·겨울 방학 일정을 중도입사 탭으로 가져온다
+function meSyncVacation() {
+  const vs = (typeof state !== 'undefined' && state.vacations) ? state.vacations : [];
+  const summer = vs.find(v => (v.name || '').includes('여름')) || vs[0];
+  const winter = vs.find(v => (v.name || '').includes('겨울')) || vs[1];
+  if (summer && summer.vacStart && summer.vacEnd) {
+    document.getElementById('me-sumVacStart').value = summer.vacStart;
+    document.getElementById('me-sumVacEnd').value   = summer.vacEnd;
+  }
+  if (winter && winter.vacStart) {
+    document.getElementById('me-winVacStart').value = winter.vacStart;
+  }
+  meCalc();
+}
+
 function meUpdateJob() {
   const val = document.getElementById('me-jobCategory').value;
   if (!val) return;
@@ -1471,7 +1526,19 @@ function meCalc() {
   const sc = meCalcSchoolDays();
   if (!sc) { document.getElementById('me-result').classList.remove('show'); return; }
 
-  const { total: schoolTotal, schoolYearStart, sumStart, winEnd } = sc;
+  const { total: schoolTotal, schoolYearStart, inVacation, sumStart, winEnd } = sc;
+
+  // 두 날짜 사이(양끝 포함)의 '학기중' 일수만 센다 (방학기간 제외)
+  function meCountSchoolDays(from, to) {
+    if (!from || !to || to < from) return 0;
+    let n = 0;
+    const cur = new Date(from);
+    while (cur <= to) {
+      if (!inVacation(cur)) n++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return n;
+  }
   const targetDays = parseInt(jobVal.split('_')[1]);
 
   const holidays  = parseInt(document.getElementById('me-holidays').value)  || 0;
@@ -1486,36 +1553,38 @@ function meCalc() {
   let excludeNote = '';
   let entryDate = null;
   let schoolActual = schoolTotal;
-  let summerExcluded = false; // 여름방학 전체 제외 여부
+  let summerExcluded = false; // 여름방학 유급일 미포함 (2학기 중 복직)
+  let winterExcluded = false; // 겨울방학 유급일 미포함 (9.1. 퇴직)
 
   if (type === 'mid') {
     const edStr = document.getElementById('me-entryDate').value;
     if (!edStr) { document.getElementById('me-result').classList.remove('show'); return; }
     entryDate = meParseDate(edStr);
-    // 3.1 ~ 입사 전날
+    // 3.1. ~ 입사 전날 중 '학기중'에 해당하는 일수만 제외
+    // (지침 예시2: 3.1.~9.22. 제외분 175일 = 달력 206일 - 여름방학 31일)
     const excludeEnd = new Date(entryDate); excludeEnd.setDate(excludeEnd.getDate()-1);
     if (excludeEnd >= schoolYearStart) {
-      excludeDays = meDayDiff(schoolYearStart, excludeEnd) + 1;
-      // 방학 기간은 제외 계산에서 빼야 함 (학기중만 제외)
-      // 단순화: 3.1~입사전날 중 학기중 일수만 빼야 하나 지침은 달력상 일수로 계산
-      excludeNote = `3.1.~${meFmt(excludeEnd)} 미재직 제외`;
+      excludeDays = meCountSchoolDays(schoolYearStart, excludeEnd);
+      excludeNote = `3.1.~${meFmt(excludeEnd)} 미재직 제외 (학기중 일수 기준, 방학기간 제외)`;
     }
     schoolActual = schoolTotal - excludeDays;
-    // 2학기 중 복직이면 여름방학 제외
-    // 기준: 여름 개학일 이후 복직
+    // 2학기 중 복직이면 여름방학 유급일 미포함 (기준: 여름 개학일 이후 복직)
     const sumEnd = meParseDate(document.getElementById('me-sumVacEnd').value);
     if (entryDate >= sumEnd) {
       summerExcluded = true;
     }
+  } else if (type === 'retire') {
+    // 9.1.자 퇴직예정: 퇴직일부터의 기간(학기중)을 제외
+    const retireDate = new Date(schoolYearStart.getFullYear(), 8, 1); // 9.1.
+    const schoolYearEnd = new Date(winEnd); schoolYearEnd.setDate(schoolYearEnd.getDate()-1);
+    excludeDays = meCountSchoolDays(retireDate, schoolYearEnd);
+    excludeNote = `9.1.~${meFmt(schoolYearEnd)} 퇴직 이후 제외 (학기중 일수 기준)`;
+    schoolActual = schoolTotal - excludeDays;
+    winterExcluded = true; // 겨울방학 유급일 미포함 → 여름방학 기준으로만 입력
   }
 
-  // 방학중 유급일수 결정
+  // 방학중 유급일수 결정 (사용자가 해당 방학 기준으로만 입력)
   let vacActual = vacBreakDays;
-  let summerNote = '';
-  if (summerExcluded) {
-    // 여름방학 공휴일/연수/출근/토일유급 모두 0 (사용자가 겨울방학 기준으로만 입력하도록 안내)
-    summerNote = '2학기 중 복직 → 여름방학 방학중 유급일 미포함';
-  }
 
   const grandTotal = schoolActual + vacActual;
   const diff = targetDays - grandTotal;
@@ -1531,9 +1600,9 @@ function meCalc() {
     <td>${schoolTotal}일</td>
     <td class="td-left">3.1. ~ 겨울방학 개학 전날</td>
   </tr>`;
-  if (type === 'mid' && excludeDays > 0) {
+  if (excludeDays > 0) {
     rows += `<tr>
-      <td class="minus">▼ 미재직 기간 제외</td>
+      <td class="minus">▼ ${type === 'retire' ? '퇴직 이후 기간 제외' : '미재직 기간 제외'}</td>
       <td class="minus">-${excludeDays}일</td>
       <td class="td-left minus">${excludeNote}</td>
     </tr>`;
@@ -1550,7 +1619,7 @@ function meCalc() {
     </tr>`;
   }
 
-  const vacLabel = summerExcluded ? '겨울방학 중' : '방학중';
+  const vacLabel = summerExcluded ? '겨울방학 중' : (winterExcluded ? '여름방학 중' : '방학중');
   rows += `<tr>
     <td rowspan="5"><span class="me-badge ${summerExcluded ? 'winter' : 'summer'}">${vacLabel}</span></td>
     <td>② 공휴일</td><td>${holidays}일</td><td class="td-left">8.15, 설연휴 등</td>
@@ -1561,7 +1630,7 @@ function meCalc() {
   <tr class="sub-total">
     <td colspan="2">방학중 소계</td>
     <td>${vacActual}일</td>
-    <td class="td-left">${summerExcluded ? '<span class="me-badge exclude">여름방학 제외</span>' : ''}</td>
+    <td class="td-left">${summerExcluded ? '<span class="me-badge exclude">여름방학 제외</span>' : (winterExcluded ? '<span class="me-badge exclude">겨울방학 제외</span>' : '')}</td>
   </tr>`;
 
   rows += `<tr class="grand-total">
@@ -1574,12 +1643,13 @@ function meCalc() {
 
   // 수식 텍스트
   let formulaText = `학기중 ${schoolActual}일`;
-  if (type === 'mid' && excludeDays > 0) formulaText += ` <span style="color:var(--red);font-size:0.85rem;">(전체 ${schoolTotal}일 - 미재직 ${excludeDays}일)</span>`;
+  if (excludeDays > 0) formulaText += ` <span style="color:var(--red);font-size:0.85rem;">(전체 ${schoolTotal}일 - ${type === 'retire' ? '퇴직 이후' : '미재직'} ${excludeDays}일)</span>`;
   formulaText += ` + 방학중 ${vacActual}일 = <span class="f-total">${grandTotal}일</span> / 목표 ${targetDays}일`;
   if (diff === 0) formulaText += ' &nbsp;✅ 목표 달성!';
   else if (diff > 0) formulaText += ` &nbsp;<span style="color:var(--red);">▲ ${diff}일 부족</span>`;
   else formulaText += ` &nbsp;<span style="color:var(--amber);">▼ ${Math.abs(diff)}일 초과</span>`;
-  if (summerExcluded) formulaText += `<br><span class="f-warn">※ 2학기 중 복직으로 여름방학 방학중 유급일 미포함</span>`;
+  if (summerExcluded) formulaText += `<br><span class="f-warn">※ 2학기 중 복직으로 여름방학 방학중 유급일 미포함 → 겨울방학 기준으로만 입력하세요</span>`;
+  if (winterExcluded) formulaText += `<br><span class="f-warn">※ 9.1. 퇴직예정으로 겨울방학 방학중 유급일 미포함 → 여름방학 기준으로만 입력하세요</span>`;
   if (minSummerWarn) formulaText += `<br><span class="f-warn">⚠️ 9.1. 퇴직예정: 여름방학 유급일수 최소 12일 보장 필요 (현재 방학중 ${vacBreakDays}일)</span>`;
 
   document.getElementById('me-formula').innerHTML = formulaText;
